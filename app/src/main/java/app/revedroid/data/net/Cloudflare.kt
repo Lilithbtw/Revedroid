@@ -93,12 +93,16 @@ class CloudflareInterceptor(
         val response = chain.proceed(chain.request())
         val url = response.request.url.toString()
         return when (CloudflareDetector.classify(response)) {
-            CloudflareVerdict.None -> response
+            CloudflareVerdict.None -> {
+                response
+            }
+
             CloudflareVerdict.Challenge -> {
                 response.close()
                 monitor.report(challengePageFor(response.request.method, url))
                 throw CloudflareChallengeException(url)
             }
+
             CloudflareVerdict.Blocked -> {
                 response.close()
                 throw CloudflareBlockedException(url)

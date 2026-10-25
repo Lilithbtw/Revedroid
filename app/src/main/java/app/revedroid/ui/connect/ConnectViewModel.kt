@@ -140,6 +140,7 @@ class ConnectViewModel(
                     _events.send(ConnectEvent.Connected(container.sessions.hasSessionFor(target)))
                     return
                 }
+
                 PingResult.Challenge -> {
                     // Right after a solve the clearance cookie can take a moment to
                     // be honoured; only send the user back once retries run out.
@@ -152,12 +153,14 @@ class ConnectViewModel(
                     _events.send(ConnectEvent.OpenChallenge(url))
                     return
                 }
+
                 PingResult.Blocked -> {
                     _state.update {
                         it.copy(stage = ConnectStage.Failed("Cloudflare is blocking this device. Ask the server admin to allow it."))
                     }
                     return
                 }
+
                 is PingResult.Failed -> {
                     lastError = result.message
                     if (result.fatal) break

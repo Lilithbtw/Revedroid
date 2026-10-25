@@ -274,7 +274,7 @@ class FileRepository(
                 .build()
         container.uploadClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Upload node answered HTTP ${response.code}")
-            CloudreveJson.decodeFromString<ApiEnvelope>(response.body!!.string()).ensureOk()
+            CloudreveJson.decodeFromString<ApiEnvelope>(response.body.string()).ensureOk()
         }
     }
 

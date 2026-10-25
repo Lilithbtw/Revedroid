@@ -45,7 +45,7 @@ The Cloudflare clearance cookie is stored in the WebView's cookie manager and sh
 
 ## Compile from source
 
-Requirements: JDK 17 and the Android SDK with compileSdk 35. The minimum supported Android version is 29 (Android 10).
+Requirements: JDK 17 and the Android SDK with compileSdk 37.2. The minimum supported Android version is 29 (Android 10).
 
 ```sh
 git clone git@github.com:Lilithbtw/Revedroid.git

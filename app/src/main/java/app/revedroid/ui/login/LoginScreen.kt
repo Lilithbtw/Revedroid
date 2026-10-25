@@ -122,7 +122,10 @@ fun LoginScreen(
                 Spacer(Modifier.height(24.dp))
 
                 when {
-                    state.loadingConfig -> CircularProgressIndicator()
+                    state.loadingConfig -> {
+                        CircularProgressIndicator()
+                    }
+
                     state.configError != null -> {
                         Text(
                             state.configError!!,
@@ -132,10 +135,12 @@ fun LoginScreen(
                         Spacer(Modifier.height(12.dp))
                         OutlinedButton(onClick = viewModel::loadConfig) { Text(stringResource(R.string.action_retry)) }
                     }
-                    else ->
+
+                    else -> {
                         AnimatedContent(state.twoFactorSessionId != null, label = "login-phase") { twoFactor ->
                             if (twoFactor) TwoFactorForm(state, viewModel) else CredentialsForm(state, viewModel)
                         }
+                    }
                 }
             }
         }
@@ -186,9 +191,13 @@ private fun CredentialsForm(
         )
 
         when (val captcha = state.captcha) {
-            CaptchaKind.None -> Unit
-            CaptchaKind.Image -> ImageCaptcha(state, viewModel)
-            else ->
+            CaptchaKind.None -> {}
+
+            CaptchaKind.Image -> {
+                ImageCaptcha(state, viewModel)
+            }
+
+            else -> {
                 WebCaptcha(
                     kind = captcha,
                     serverUrl = state.server,
@@ -196,6 +205,7 @@ private fun CredentialsForm(
                     dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
                     onToken = viewModel::onWebCaptchaToken,
                 )
+            }
         }
 
         ErrorText(state.error)

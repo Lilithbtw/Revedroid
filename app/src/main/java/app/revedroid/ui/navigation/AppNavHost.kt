@@ -95,14 +95,17 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             LaunchedEffect(vm) {
                 vm.events.collect { event ->
                     when (event) {
-                        is ConnectEvent.OpenChallenge ->
+                        is ConnectEvent.OpenChallenge -> {
                             navController.navigate(ChallengeRoute(event.url)) {
                                 launchSingleTop = true
                             }
-                        is ConnectEvent.Connected ->
+                        }
+
+                        is ConnectEvent.Connected -> {
                             navController.navigate(if (event.signedIn) HomeRoute else LoginRoute) {
                                 popUpTo(navController.graph.id) { inclusive = true }
                             }
+                        }
                     }
                 }
             }

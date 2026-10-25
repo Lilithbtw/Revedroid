@@ -156,11 +156,15 @@ class LoginViewModel(
                     _loggedIn.send(Unit)
                 } else {
                     when (val outcome = auth.login(s.email.trim(), s.password, captchaParams(s))) {
-                        is LoginOutcome.Success -> _loggedIn.send(Unit)
-                        is LoginOutcome.TwoFactorRequired ->
+                        is LoginOutcome.Success -> {
+                            _loggedIn.send(Unit)
+                        }
+
+                        is LoginOutcome.TwoFactorRequired -> {
                             _state.update {
                                 it.copy(twoFactorSessionId = outcome.sessionId, otp = "")
                             }
+                        }
                     }
                 }
             } catch (e: CancellationException) {
@@ -194,21 +198,37 @@ class LoginViewModel(
     private fun captchaKindOf(config: SiteConfig): CaptchaKind {
         if (!config.loginCaptcha) return CaptchaKind.None
         return when (config.captchaType) {
-            "recaptcha" -> CaptchaKind.ReCaptcha(config.reCaptchaKey.orEmpty())
-            "turnstile" -> CaptchaKind.Turnstile(config.turnstileSiteId.orEmpty())
+            "recaptcha" -> {
+                CaptchaKind.ReCaptcha(config.reCaptchaKey.orEmpty())
+            }
+
+            "turnstile" -> {
+                CaptchaKind.Turnstile(config.turnstileSiteId.orEmpty())
+            }
+
             "cap" -> {
                 val instance = config.capInstanceUrl.orEmpty().trimEnd('/')
                 val (script, wasm) =
                     when (config.capAssetServer) {
-                        "instance" -> "$instance/assets/widget.js" to "$instance/assets/cap_wasm_bg.wasm"
-                        "unpkg" -> "https://unpkg.com/@cap.js/widget" to "https://unpkg.com/@cap.js/wasm/browser/cap_wasm_bg.wasm"
-                        else ->
+                        "instance" -> {
+                            "$instance/assets/widget.js" to "$instance/assets/cap_wasm_bg.wasm"
+                        }
+
+                        "unpkg" -> {
+                            "https://unpkg.com/@cap.js/widget" to "https://unpkg.com/@cap.js/wasm/browser/cap_wasm_bg.wasm"
+                        }
+
+                        else -> {
                             "https://cdn.jsdelivr.net/npm/@cap.js/widget" to
                                 "https://cdn.jsdelivr.net/npm/@cap.js/wasm/browser/cap_wasm_bg.wasm"
+                        }
                     }
                 CaptchaKind.Cap("$instance/${config.capSiteKey.orEmpty()}/", script, wasm)
             }
-            else -> CaptchaKind.Image
+
+            else -> {
+                CaptchaKind.Image
+            }
         }
     }
 

@@ -157,9 +157,11 @@ private fun StageCard(
     viewModel: ConnectViewModel,
 ) {
     when (stage) {
-        ConnectStage.Idle -> Spacer(Modifier.height(1.dp))
+        ConnectStage.Idle -> {
+            Spacer(Modifier.height(1.dp))
+        }
 
-        is ConnectStage.Checking ->
+        is ConnectStage.Checking -> {
             StatusCard(
                 icon = if (stage.afterChallenge) Icons.Rounded.Security else Icons.Rounded.CloudQueue,
                 title =
@@ -170,8 +172,9 @@ private fun StageCard(
                 progress = true,
                 action = { TextButton(onClick = viewModel::cancel) { Text(stringResource(R.string.action_cancel)) } },
             )
+        }
 
-        is ConnectStage.NeedsChallenge ->
+        is ConnectStage.NeedsChallenge -> {
             StatusCard(
                 icon = Icons.Rounded.Security,
                 title = stringResource(R.string.connect_challenge_title),
@@ -182,8 +185,9 @@ private fun StageCard(
                     }
                 },
             )
+        }
 
-        is ConnectStage.Failed ->
+        is ConnectStage.Failed -> {
             StatusCard(
                 icon = Icons.Rounded.ErrorOutline,
                 title = stringResource(R.string.connect_failed),
@@ -191,8 +195,9 @@ private fun StageCard(
                 error = true,
                 action = { TextButton(onClick = viewModel::connect) { Text(stringResource(R.string.action_retry)) } },
             )
+        }
 
-        is ConnectStage.Connected ->
+        is ConnectStage.Connected -> {
             StatusCard(
                 icon = Icons.Rounded.CheckCircle,
                 title = stringResource(R.string.connect_connected),
@@ -202,6 +207,7 @@ private fun StageCard(
                         if (cloudflareSeen) append(" · ").append(stringResource(R.string.connect_via_cloudflare))
                     },
             )
+        }
     }
 }
 

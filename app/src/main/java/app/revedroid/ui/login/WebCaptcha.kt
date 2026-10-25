@@ -81,20 +81,28 @@ private fun captchaHtml(
     val theme = if (dark) "dark" else "light"
     val (head, body) =
         when (kind) {
-            is CaptchaKind.Turnstile ->
+            is CaptchaKind.Turnstile -> {
                 """<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>""" to
                     """<div class="cf-turnstile" data-sitekey="${kind.siteKey.attr()}" data-theme="$theme"
                    data-callback="tok" data-expired-callback="exp" data-error-callback="exp"></div>"""
-            is CaptchaKind.ReCaptcha ->
+            }
+
+            is CaptchaKind.ReCaptcha -> {
                 """<script src="https://www.google.com/recaptcha/api.js" async defer></script>""" to
                     """<div class="g-recaptcha" data-sitekey="${kind.siteKey.attr()}" data-theme="$theme"
                    data-callback="tok" data-expired-callback="exp"></div>"""
-            is CaptchaKind.Cap ->
+            }
+
+            is CaptchaKind.Cap -> {
                 """<script>window.CAP_CUSTOM_WASM_URL = "${kind.wasmUrl.attr()}";</script>
                <script src="${kind.scriptUrl.attr()}" async></script>""" to
                     """<cap-widget id="cap" data-cap-api-endpoint="${kind.apiEndpoint.attr()}"></cap-widget>
                    <script>document.getElementById('cap').addEventListener('solve', function (e) { tok(e.detail.token); });</script>"""
-            CaptchaKind.Image, CaptchaKind.None -> return null
+            }
+
+            CaptchaKind.Image, CaptchaKind.None -> {
+                return null
+            }
         }
     return """
         <!doctype html>

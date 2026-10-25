@@ -61,7 +61,7 @@ class ServerRepository(
                     }
                     val envelope =
                         runCatching {
-                            CloudreveJson.decodeFromString<ApiEnvelope>(response.body!!.string())
+                            CloudreveJson.decodeFromString<ApiEnvelope>(response.body.string())
                         }.getOrNull() ?: return@withContext PingResult.Failed(
                             "This doesn't look like a Cloudreve v4 server",
                             fatal = true,

@@ -141,7 +141,7 @@ class SessionManager(
                 CloudflareVerdict.None -> Unit
             }
             if (!response.isSuccessful) throw IOException("Token refresh failed: HTTP ${response.code}")
-            val envelope = CloudreveJson.decodeFromString<ApiEnvelope>(response.body!!.string())
+            val envelope = CloudreveJson.decodeFromString<ApiEnvelope>(response.body.string())
             return envelope.decode()
         }
     }

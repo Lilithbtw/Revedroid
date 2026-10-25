@@ -145,7 +145,10 @@ fun FilesScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is FilesEvent.Message -> snackbar.showSnackbar(event.text)
+                is FilesEvent.Message -> {
+                    snackbar.showSnackbar(event.text)
+                }
+
                 is FilesEvent.ShareLink -> {
                     val send =
                         Intent(Intent.ACTION_SEND).apply {
@@ -210,18 +213,22 @@ fun FilesScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when {
-                    state.loading ->
+                    state.loading -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
-                    state.error != null && state.files.isEmpty() ->
+                    }
+
+                    state.error != null && state.files.isEmpty() -> {
                         MessageState(
                             icon = Icons.Rounded.CloudOff,
                             text = state.error!!,
                             action = stringResource(R.string.action_retry),
                             onAction = viewModel::refresh,
                         )
-                    state.files.isEmpty() ->
+                    }
+
+                    state.files.isEmpty() -> {
                         MessageState(
                             icon =
                                 when {
@@ -238,7 +245,9 @@ fun FilesScreen(
                                     },
                                 ),
                         )
-                    viewMode == FileViewMode.Grid ->
+                    }
+
+                    viewMode == FileViewMode.Grid -> {
                         FileGrid(
                             state = state,
                             gridState = gridState,
@@ -246,7 +255,9 @@ fun FilesScreen(
                             onLongClick = { sheetFile = it },
                             onLoadMore = viewModel::loadMore,
                         )
-                    else ->
+                    }
+
+                    else -> {
                         FileList(
                             state = state,
                             listState = listState,
@@ -254,6 +265,7 @@ fun FilesScreen(
                             onMore = { sheetFile = it },
                             onLoadMore = viewModel::loadMore,
                         )
+                    }
                 }
             }
         }
@@ -294,8 +306,9 @@ fun FilesScreen(
     }
 
     when (val d = dialog) {
-        null -> Unit
-        FilesDialog.NewFolder ->
+        null -> {}
+
+        FilesDialog.NewFolder -> {
             NameDialog(
                 title = stringResource(R.string.files_new_folder),
                 initial = "",
@@ -306,7 +319,9 @@ fun FilesScreen(
                 },
                 onDismiss = { dialog = null },
             )
-        is FilesDialog.Rename ->
+        }
+
+        is FilesDialog.Rename -> {
             NameDialog(
                 title = stringResource(R.string.files_rename),
                 initial = d.file.name,
@@ -317,7 +332,9 @@ fun FilesScreen(
                 },
                 onDismiss = { dialog = null },
             )
-        is FilesDialog.Delete ->
+        }
+
+        is FilesDialog.Delete -> {
             ConfirmDialog(
                 title = stringResource(if (d.forever) R.string.files_delete_forever_title else R.string.files_delete_title),
                 text =
@@ -332,7 +349,9 @@ fun FilesScreen(
                 },
                 onDismiss = { dialog = null },
             )
-        FilesDialog.EmptyTrash ->
+        }
+
+        FilesDialog.EmptyTrash -> {
             ConfirmDialog(
                 title = stringResource(R.string.files_empty_trash_title),
                 text = stringResource(R.string.files_empty_trash_body),
@@ -343,6 +362,7 @@ fun FilesScreen(
                 },
                 onDismiss = { dialog = null },
             )
+        }
     }
 }
 

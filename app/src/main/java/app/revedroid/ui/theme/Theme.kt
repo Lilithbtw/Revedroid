@@ -99,10 +99,17 @@ fun RevedroidTheme(
     val context = LocalContext.current
     val colors =
         when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
                 if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            dark -> DarkColors
-            else -> LightColors
+            }
+
+            dark -> {
+                DarkColors
+            }
+
+            else -> {
+                LightColors
+            }
         }
 
     val view = LocalView.current
