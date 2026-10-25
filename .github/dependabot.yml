@@ -1,0 +1,30 @@
+version: 2
+updates:
+  # Gradle, including gradle/libs.versions.toml and the wrapper.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # The Kotlin compiler and its compose/serialization plugins must move together.
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+      androidx:
+        patterns:
+          - "androidx.*"
+      libraries:
+        patterns:
+          - "com.squareup.*"
+          - "io.coil-kt*"
+          - "org.jetbrains.kotlinx*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"

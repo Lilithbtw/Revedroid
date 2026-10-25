@@ -1,0 +1,37 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 4 * * 1" # weekly, so new queries also run on unchanged code
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Security analysis (Kotlin)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          queries: security-extended
+      # CodeQL has to watch kotlinc run, so skip every cached or up-to-date output.
+      - name: Build
+        run: ./gradlew :app:assembleDebug --no-build-cache --no-configuration-cache --rerun-tasks
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"

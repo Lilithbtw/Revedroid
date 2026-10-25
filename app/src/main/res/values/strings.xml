@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Revedroid</string>
+
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_create">Create</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_reload">Reload</string>
+    <string name="action_retry">Retry</string>
+
+    <string name="nav_files">My files</string>
+    <string name="nav_trash">Trash</string>
+    <string name="nav_account">Account</string>
+
+    <!-- Connect -->
+    <string name="connect_title">Connect to Cloudreve</string>
+    <string name="connect_subtitle">Enter the address of your Cloudreve server.</string>
+    <string name="connect_address_label">Server address</string>
+    <string name="connect_address_hint">HTTPS is assumed when no scheme is given</string>
+    <string name="connect_address_invalid">That doesn\'t look like a valid address</string>
+    <string name="connect_action">Connect</string>
+    <string name="connect_checking">Checking the server…</string>
+    <string name="connect_waiting_after_challenge">Verified. Waiting for the server…</string>
+    <string name="connect_attempt">Attempt %1$d of %2$d</string>
+    <string name="connect_challenge_title">Cloudflare verification needed</string>
+    <string name="connect_challenge_body">This server is protected by Cloudflare. Complete the check once and the app will keep the session.</string>
+    <string name="connect_challenge_action">Verify</string>
+    <string name="connect_failed">Couldn\'t connect</string>
+    <string name="connect_connected">Connected</string>
+    <string name="connect_version">Cloudreve %1$s</string>
+    <string name="connect_via_cloudflare">via Cloudflare</string>
+
+    <!-- Challenge -->
+    <string name="challenge_title">Security check</string>
+    <string name="challenge_subtitle">Complete the check to continue</string>
+    <string name="challenge_done">Done</string>
+
+    <!-- Login -->
+    <string name="login_title">Sign in</string>
+    <string name="login_change_server">Change</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <string name="login_show_password">Show password</string>
+    <string name="login_hide_password">Hide password</string>
+    <string name="login_captcha">Captcha</string>
+    <string name="login_captcha_refresh">Tap to get a new captcha</string>
+    <string name="login_action">Sign in</string>
+    <string name="login_2fa_title">Two-step verification</string>
+    <string name="login_2fa_body">Enter the 6-digit code from your authenticator app.</string>
+    <string name="login_2fa_code">Verification code</string>
+    <string name="login_2fa_action">Verify</string>
+
+    <!-- Files -->
+    <string name="files_new">New</string>
+    <string name="files_upload">Upload files</string>
+    <string name="files_new_folder">New folder</string>
+    <string name="files_name">Name</string>
+    <string name="files_open">Open</string>
+    <string name="files_download">Download</string>
+    <string name="files_share">Create share link</string>
+    <string name="files_rename">Rename</string>
+    <string name="files_delete">Move to trash</string>
+    <string name="files_delete_title">Move to trash?</string>
+    <string name="files_delete_body">\"%1$s\" will be moved to the trash.</string>
+    <string name="files_delete_forever">Delete forever</string>
+    <string name="files_delete_forever_title">Delete forever?</string>
+    <string name="files_delete_forever_body">\"%1$s\" will be permanently deleted. This can\'t be undone.</string>
+    <string name="files_restore">Restore</string>
+    <string name="files_more">More options</string>
+    <string name="files_search">Search</string>
+    <string name="files_search_hint">Search your files</string>
+    <string name="files_sort">Sort</string>
+    <string name="files_toggle_view">Change layout</string>
+    <string name="files_empty_folder">This folder is empty</string>
+    <string name="files_empty_trash">Trash is empty</string>
+    <string name="files_empty_search">No matching files</string>
+    <string name="files_empty_trash_title">Empty trash?</string>
+    <string name="files_empty_trash_body">Everything in the trash will be permanently deleted.</string>
+    <string name="files_empty_trash_action">Empty trash</string>
+
+    <string name="sort_name">Name</string>
+    <string name="sort_size">Size</string>
+    <string name="sort_updated">Last modified</string>
+    <string name="sort_created">Date created</string>
+
+    <!-- Account -->
+    <string name="account_storage">Storage</string>
+    <string name="account_storage_used">%1$s of %2$s used</string>
+    <string name="account_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="account_dynamic_color">Dynamic color</string>
+    <string name="account_dynamic_color_body">Use colors from your wallpaper</string>
+    <string name="account_switch_server">Switch server</string>
+    <string name="account_sign_out">Sign out</string>
+</resources>
