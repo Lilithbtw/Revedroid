@@ -1,18 +1,59 @@
 name: Release
 
-# Push a tag like v0.2.0 to build a signed APK and attach it to a GitHub release.
+# Every push to main that changes something other than Markdown creates the next
+# patch tag (v0.1.0, v0.1.1, ...) and a GitHub release with a signed APK.
+# Pushing a tag like v0.2.0 by hand also builds and publishes that tag.
 on:
   push:
+    branches: [main]
+    paths-ignore: ["**/*.md"]
     tags: ["v*"]
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  tag:
+    name: Create the next version tag
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Work out the next patch version
+        id: next
+        run: |
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+          if [ -z "$latest" ]; then
+            tag=v0.1.0
+          else
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            tag=v$major.$minor.$((patch + 1))
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Push the tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.next.outputs.tag }}" -m "Release ${{ steps.next.outputs.tag }}"
+          git push origin "${{ steps.next.outputs.tag }}"
+
   release:
+    name: Build and publish the signed APK
+    needs: tag
+    if: always() && needs.tag.result != 'failure' && needs.tag.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ needs.tag.outputs.tag || github.ref_name }}
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -39,8 +80,9 @@ jobs:
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "revedroid-${GITHUB_REF_NAME}.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "revedroid-${{ needs.tag.outputs.tag || github.ref_name }}.apk"
       - uses: softprops/action-gh-release@v3
         with:
-          files: revedroid-${{ github.ref_name }}.apk
+          tag_name: ${{ needs.tag.outputs.tag || github.ref_name }}
+          files: revedroid-${{ needs.tag.outputs.tag || github.ref_name }}.apk
           generate_release_notes: true
