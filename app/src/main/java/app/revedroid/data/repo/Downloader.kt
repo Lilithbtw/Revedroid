@@ -21,7 +21,7 @@ class Downloader(
         url: String,
         fileName: String,
     ): Long {
-        val safeName = fileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+        val safeName = safeFileName(fileName)
         val request =
             DownloadManager
                 .Request(Uri.parse(url))
@@ -33,3 +33,6 @@ class Downloader(
         return manager.enqueue(request)
     }
 }
+
+/** Replaces characters that file systems reject in names. */
+fun safeFileName(name: String): String = name.replace(Regex("[\\\\/:*?\"<>|]"), "_")

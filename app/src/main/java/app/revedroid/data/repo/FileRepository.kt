@@ -175,8 +175,12 @@ class FileRepository(
         container.authed { emptyTrash().ensureOk() }
     }
 
-    suspend fun downloadUrl(file: CloudFile): String {
-        val response = container.authed { fileUrl(FileUrlRequest(listOf(file.path))).decode<FileUrlResponse>() }
+    /** Signed URL for the file's content; [download] asks for an attachment rather than inline content. */
+    suspend fun downloadUrl(
+        file: CloudFile,
+        download: Boolean = true,
+    ): String {
+        val response = container.authed { fileUrl(FileUrlRequest(listOf(file.path), download)).decode<FileUrlResponse>() }
         val url = response.urls.firstOrNull()?.url ?: throw IOException("The server returned no download link")
         return ServerUrls.resolve(container.requireServer(), url)
     }

@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.CreateNewFolder
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DriveFileRenameOutline
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Preview
 import androidx.compose.material.icons.rounded.RestoreFromTrash
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.UploadFile
@@ -56,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import app.revedroid.R
 import app.revedroid.data.api.CloudFile
 
-enum class FileAction { Open, Download, Share, Rename, Delete, Restore, DeleteForever }
+enum class FileAction { Open, Preview, OpenWith, Download, Share, Rename, Delete, Restore, DeleteForever }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,6 +93,12 @@ fun FileActionsSheet(
                 if (file.isFolder) {
                     SheetAction(Icons.Rounded.FolderOpen, stringResource(R.string.files_open)) { onAction(FileAction.Open) }
                 } else {
+                    if (previewKindOf(file) != null) {
+                        SheetAction(Icons.Rounded.Preview, stringResource(R.string.files_open)) { onAction(FileAction.Preview) }
+                    }
+                    SheetAction(Icons.AutoMirrored.Rounded.OpenInNew, stringResource(R.string.files_open_with)) {
+                        onAction(FileAction.OpenWith)
+                    }
                     SheetAction(Icons.Rounded.Download, stringResource(R.string.files_download)) { onAction(FileAction.Download) }
                 }
                 SheetAction(Icons.Rounded.Share, stringResource(R.string.files_share)) { onAction(FileAction.Share) }

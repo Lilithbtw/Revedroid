@@ -57,6 +57,7 @@ data class FilesUiState(
     val searchQuery: String? = null,
     val policy: StoragePolicy? = null,
     val uploads: List<UploadTask> = emptyList(),
+    val fetching: FetchTask? = null,
 ) {
     val isTrash: Boolean get() = root == CloudUris.TRASH_ROOT
     val isSearching: Boolean get() = searchQuery != null
@@ -71,6 +72,11 @@ sealed interface FilesEvent {
 
     data class ShareLink(
         val url: String,
+        val name: String,
+    ) : FilesEvent
+
+    data class OpenWith(
+        val uri: Uri,
         val name: String,
     ) : FilesEvent
 }
@@ -93,6 +99,7 @@ class FilesViewModel(
     val events = _events.receiveAsFlow()
 
     private var loadJob: Job? = null
+    private var fetchJob: Job? = null
     private var nextToken: String? = null
     private var nextPage: Int? = null
     private var listedUri: String = root
@@ -263,6 +270,32 @@ class FilesViewModel(
             container.downloader.enqueue(url, file.name)
             _events.send(FilesEvent.Message("Downloading ${file.name}"))
         }
+
+    /** Copies [file] to the device, then asks the screen to show the app picker. */
+    fun openWith(file: CloudFile) {
+        if (fetchJob?.isActive == true) return
+        fetchJob =
+            viewModelScope.launch {
+                _state.update { it.copy(fetching = FetchTask(file.name)) }
+                try {
+                    val local =
+                        container.fileCache.fetch(file) { p ->
+                            _state.update { it.copy(fetching = it.fetching?.copy(sent = p.sent, total = p.total)) }
+                        }
+                    _events.send(FilesEvent.OpenWith(container.fileCache.uriFor(local), file.name))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _events.send(FilesEvent.Message(e.userMessage()))
+                } finally {
+                    _state.update { it.copy(fetching = null) }
+                }
+            }
+    }
+
+    fun cancelFetch() {
+        fetchJob?.cancel()
+    }
 
     fun share(file: CloudFile) =
         act {

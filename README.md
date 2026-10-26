@@ -18,6 +18,7 @@ Release APKs are signed with the project's release key, so an update installs ov
 - Tokens are stored encrypted with an Android Keystore AES-GCM key and refreshed before they expire.
 - Browse files as a list or a grid, with thumbnails, breadcrumbs, sorting, search, pull-to-refresh, and pagination.
 - Create folders, rename items, move them to the trash, create share links, and download files through the system DownloadManager.
+- Tap a photo, video, song, or PDF to open it in the app, with pinch-to-zoom for photos and PDFs. Other files open in another app, and every file's menu has an "Open with" entry for choosing the app yourself.
 - Restore items from the trash, delete them permanently, or empty the trash.
 - Upload in chunks to `local` and `remote` (slave node) storage policies, and to any policy running in relay mode.
 - See your storage usage, choose a theme, use Material You dynamic color, sign out, or switch servers from the account page.
@@ -40,7 +41,7 @@ The Cloudflare clearance cookie is stored in the WebView's cookie manager and sh
 
 - Direct uploads to third-party object storage (S3, OSS, COS, OneDrive, and similar) when relay mode is off.
 - Passkey, SSO, and OAuth sign-in, registration, and password reset.
-- Moving and copying files, previews and viewers, share management, WebDAV, and offline downloads.
+- Moving and copying files, previews for text and office documents, share management, WebDAV, and offline downloads.
 - Uploads run in the ViewModel, so they stop if the app process is killed. WorkManager is the planned fix.
 
 ## Compile from source
