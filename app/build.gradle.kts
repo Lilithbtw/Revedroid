@@ -101,6 +101,12 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.telephoto.zoomable.image.coil3)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.datasource.okhttp)
+    implementation(libs.androidx.media3.ui.compose.material3)
+    implementation(libs.androidx.pdf.compose)
+    implementation(libs.androidx.pdf.document.service)
 
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)

@@ -122,6 +122,7 @@ private sealed interface FilesDialog {
 fun FilesScreen(
     viewModel: FilesViewModel,
     refreshSignal: Long,
+    onPreview: (CloudFile) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -158,6 +159,10 @@ fun FilesScreen(
                         }
                     context.startActivity(Intent.createChooser(send, event.name))
                 }
+
+                is FilesEvent.OpenWith -> {
+                    context.openWith(event.uri, event.name)
+                }
             }
         }
     }
@@ -168,6 +173,16 @@ fun FilesScreen(
     }
 
     BackHandler(enabled = state.isSearching || !state.atRoot) { viewModel.goUp() }
+
+    // Folders open in place and supported files in the viewer; anything else goes to another app.
+    val onFileClick: (CloudFile) -> Unit = {
+        when {
+            state.isTrash -> sheetFile = it
+            it.isFolder -> viewModel.open(it)
+            previewKindOf(it) != null -> onPreview(it)
+            else -> viewModel.openWith(it)
+        }
+    }
 
     val fabExpanded by remember {
         derivedStateOf { listState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemIndex == 0 }
@@ -251,7 +266,7 @@ fun FilesScreen(
                         FileGrid(
                             state = state,
                             gridState = gridState,
-                            onClick = { if (it.isFolder && !state.isTrash) viewModel.open(it) else sheetFile = it },
+                            onClick = onFileClick,
                             onLongClick = { sheetFile = it },
                             onLoadMore = viewModel::loadMore,
                         )
@@ -261,7 +276,7 @@ fun FilesScreen(
                         FileList(
                             state = state,
                             listState = listState,
-                            onClick = { if (it.isFolder && !state.isTrash) viewModel.open(it) else sheetFile = it },
+                            onClick = onFileClick,
                             onMore = { sheetFile = it },
                             onLoadMore = viewModel::loadMore,
                         )
@@ -280,6 +295,8 @@ fun FilesScreen(
                 sheetFile = null
                 when (action) {
                     FileAction.Open -> viewModel.open(file)
+                    FileAction.Preview -> onPreview(file)
+                    FileAction.OpenWith -> viewModel.openWith(file)
                     FileAction.Download -> viewModel.download(file)
                     FileAction.Share -> viewModel.share(file)
                     FileAction.Rename -> dialog = FilesDialog.Rename(file)
@@ -290,6 +307,8 @@ fun FilesScreen(
             },
         )
     }
+
+    state.fetching?.let { FetchDialog(it, onCancel = viewModel::cancelFetch) }
 
     if (showNewSheet) {
         NewItemSheet(

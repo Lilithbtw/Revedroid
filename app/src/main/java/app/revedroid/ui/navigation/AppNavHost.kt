@@ -33,6 +33,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.revedroid.R
 import app.revedroid.container
+import app.revedroid.data.api.CloudFile
+import app.revedroid.data.api.FileType
 import app.revedroid.data.repo.CloudUris
 import app.revedroid.ui.account.AccountScreen
 import app.revedroid.ui.account.AccountViewModel
@@ -44,6 +46,8 @@ import app.revedroid.ui.files.FilesScreen
 import app.revedroid.ui.files.FilesViewModel
 import app.revedroid.ui.login.LoginScreen
 import app.revedroid.ui.login.LoginViewModel
+import app.revedroid.ui.viewer.ViewerScreen
+import app.revedroid.ui.viewer.ViewerViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -61,6 +65,20 @@ data object LoginRoute
 
 @Serializable
 data object HomeRoute
+
+/** The fields of a [CloudFile] the viewer needs to fetch and cache it. */
+@Serializable
+data class ViewerRoute(
+    val id: String,
+    val name: String,
+    val path: String,
+    val size: Long,
+    val updatedAt: String?,
+) {
+    constructor(file: CloudFile) : this(file.id, file.name, file.path, file.size, file.updatedAt)
+
+    fun toFile() = CloudFile(type = FileType.FILE, id = id, name = name, path = path, size = size, updatedAt = updatedAt)
+}
 
 /** Saved-state key the challenge screen sets on the entry below it when it succeeds. */
 private const val CHALLENGE_PASSED = "challenge_passed"
@@ -145,7 +163,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                     navController.navigate(LoginRoute) { popUpTo(navController.graph.id) { inclusive = true } }
                 },
                 onSwitchServer = { navController.switchServer() },
+                onPreview = { navController.navigate(ViewerRoute(it)) },
             )
+        }
+
+        composable<ViewerRoute> { entry ->
+            val file = entry.toRoute<ViewerRoute>().toFile()
+            val vm = viewModel { ViewerViewModel(container, file) }
+            ViewerScreen(vm, onBack = { navController.popBackStack() })
         }
     }
 }
@@ -171,6 +196,7 @@ private fun HomeScreen(
     refreshSignal: Long,
     onSignedOut: () -> Unit,
     onSwitchServer: () -> Unit,
+    onPreview: (CloudFile) -> Unit,
 ) {
     val container = LocalContext.current.container
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -202,8 +228,8 @@ private fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         when (HomeTab.entries[tab]) {
-            HomeTab.Files -> FilesScreen(filesVm, refreshSignal, modifier)
-            HomeTab.Trash -> FilesScreen(trashVm, refreshSignal, modifier)
+            HomeTab.Files -> FilesScreen(filesVm, refreshSignal, onPreview, modifier)
+            HomeTab.Trash -> FilesScreen(trashVm, refreshSignal, onPreview, modifier)
             HomeTab.Account -> AccountScreen(accountVm, refreshSignal, onSignedOut, onSwitchServer, modifier)
         }
     }

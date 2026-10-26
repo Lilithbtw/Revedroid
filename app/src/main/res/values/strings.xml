@@ -58,6 +58,8 @@
     <string name="files_new_folder">New folder</string>
     <string name="files_name">Name</string>
     <string name="files_open">Open</string>
+    <string name="files_open_with">Open with</string>
+    <string name="files_preparing">Getting the file ready</string>
     <string name="files_download">Download</string>
     <string name="files_share">Create share link</string>
     <string name="files_rename">Rename</string>
@@ -79,6 +81,9 @@
     <string name="files_empty_trash_title">Empty trash?</string>
     <string name="files_empty_trash_body">Everything in the trash will be permanently deleted.</string>
     <string name="files_empty_trash_action">Empty trash</string>
+
+    <!-- Viewer -->
+    <string name="viewer_error">Couldn\'t show this file</string>
 
     <string name="sort_name">Name</string>
     <string name="sort_size">Size</string>

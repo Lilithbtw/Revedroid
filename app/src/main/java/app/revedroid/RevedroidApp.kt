@@ -3,6 +3,13 @@ package app.revedroid
 import android.app.Application
 import android.content.Context
 import android.webkit.WebSettings
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.pdf.PdfLoader
+import androidx.pdf.SandboxedPdfLoader
 import app.revedroid.data.api.ApiCode
 import app.revedroid.data.api.ApiException
 import app.revedroid.data.api.CloudreveApi
@@ -16,6 +23,7 @@ import app.revedroid.data.net.UserAgentInterceptor
 import app.revedroid.data.net.WebViewCookieJar
 import app.revedroid.data.repo.AuthRepository
 import app.revedroid.data.repo.Downloader
+import app.revedroid.data.repo.FileCache
 import app.revedroid.data.repo.FileRepository
 import app.revedroid.data.repo.ServerRepository
 import app.revedroid.data.store.AppStore
@@ -58,7 +66,7 @@ val Context.container: AppContainer get() = (applicationContext as RevedroidApp)
 
 /** Manual dependency graph; small enough that a DI framework isn't worth it. */
 class AppContainer(
-    context: Context,
+    private val context: Context,
 ) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val store = AppStore(context)
@@ -110,6 +118,8 @@ class AppContainer(
     val authRepository = AuthRepository(this)
     val fileRepository = FileRepository(this, context.contentResolver)
     val downloader = Downloader(context, cookieJar, userAgent)
+    val fileCache = FileCache(context, coreClient, fileRepository)
+    val pdfLoader: PdfLoader = SandboxedPdfLoader(context)
 
     init {
         sessions.refreshClient = coreClient
@@ -129,6 +139,14 @@ class AppContainer(
                 .build()
                 .create(CloudreveApi::class.java)
     }
+
+    /** Streams through [coreClient] so playback shares the Cloudflare cookie and User-Agent. */
+    @OptIn(UnstableApi::class)
+    fun newMediaPlayer(): ExoPlayer =
+        ExoPlayer
+            .Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(OkHttpDataSource.Factory(coreClient)))
+            .build()
 
     fun requireServer(): String = serverUrl ?: error("No server configured")
 

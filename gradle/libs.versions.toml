@@ -11,6 +11,9 @@ retrofit = "3.0.0"
 serialization = "1.12.0"
 coroutines = "1.11.0"
 coil = "3.6.3"
+telephoto = "0.19.0"
+media3 = "1.11.1"
+pdf = "1.0.0-beta01"
 datastore = "1.3.0"
 splashscreen = "1.2.0"
 junit = "4.13.2"
@@ -42,6 +45,12 @@ retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = 
 retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+telephoto-zoomable-image-coil3 = { group = "me.saket.telephoto", name = "zoomable-image-coil3", version.ref = "telephoto" }
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-datasource-okhttp = { group = "androidx.media3", name = "media3-datasource-okhttp", version.ref = "media3" }
+androidx-media3-ui-compose-material3 = { group = "androidx.media3", name = "media3-ui-compose-material3", version.ref = "media3" }
+androidx-pdf-compose = { group = "androidx.pdf", name = "pdf-compose", version.ref = "pdf" }
+androidx-pdf-document-service = { group = "androidx.pdf", name = "pdf-document-service", version.ref = "pdf" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
