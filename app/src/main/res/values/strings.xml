@@ -81,6 +81,33 @@
     <string name="files_empty_trash_title">Empty trash?</string>
     <string name="files_empty_trash_body">Everything in the trash will be permanently deleted.</string>
     <string name="files_empty_trash_action">Empty trash</string>
+    <string name="files_delete_short">Delete</string>
+    <string name="files_move">Move</string>
+    <string name="files_move_to">Move to…</string>
+    <string name="files_move_here">Move here</string>
+    <string name="files_select">Select</string>
+    <string name="files_select_all">Select all</string>
+    <string name="files_clear_selection">Clear selection</string>
+    <plurals name="files_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <plurals name="files_move_title">
+        <item quantity="one">Move %d item</item>
+        <item quantity="other">Move %d items</item>
+    </plurals>
+    <plurals name="files_delete_many">
+        <item quantity="one">%d item will be moved to the trash.</item>
+        <item quantity="other">%d items will be moved to the trash.</item>
+    </plurals>
+    <plurals name="files_delete_forever_many">
+        <item quantity="one">%d item will be permanently deleted. This can\'t be undone.</item>
+        <item quantity="other">%d items will be permanently deleted. This can\'t be undone.</item>
+    </plurals>
+
+    <!-- Folder picker -->
+    <string name="picker_no_folders">No folders here. You can still choose this folder or create a new one.</string>
+    <string name="picker_back_to_root">Go to My files</string>
 
     <!-- Viewer -->
     <string name="viewer_error">Couldn\'t show this file</string>

@@ -4,8 +4,19 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -31,27 +43,36 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.RestoreFromTrash
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,15 +80,18 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -84,21 +108,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.revedroid.R
+import app.revedroid.container
 import app.revedroid.data.api.CloudFile
 import app.revedroid.data.store.FileViewMode
+import app.revedroid.ui.theme.DialogSystemBars
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
@@ -110,8 +142,12 @@ private sealed interface FilesDialog {
     ) : FilesDialog
 
     data class Delete(
-        val file: CloudFile,
+        val files: List<CloudFile>,
         val forever: Boolean,
+    ) : FilesDialog
+
+    data class Move(
+        val files: List<CloudFile>,
     ) : FilesDialog
 
     data object EmptyTrash : FilesDialog
@@ -173,10 +209,14 @@ fun FilesScreen(
     }
 
     BackHandler(enabled = state.isSearching || !state.atRoot) { viewModel.goUp() }
+    // Declared last so it wins: Back first leaves selection mode.
+    BackHandler(enabled = state.selecting) { viewModel.clearSelection() }
 
     // Folders open in place and supported files in the viewer; anything else goes to another app.
+    // While selecting, a tap adds or removes the file instead.
     val onFileClick: (CloudFile) -> Unit = {
         when {
+            state.selecting -> viewModel.toggleSelection(it)
             state.isTrash -> sheetFile = it
             it.isFolder -> viewModel.open(it)
             previewKindOf(it) != null -> onPreview(it)
@@ -193,7 +233,14 @@ fun FilesScreen(
         contentWindowInsets = WindowInsets(0),
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            if (state.isSearching) {
+            if (state.selecting) {
+                SelectionTopBar(
+                    count = state.selected.size,
+                    allSelected = state.selected.size == state.files.size,
+                    onClose = viewModel::clearSelection,
+                    onSelectAll = viewModel::selectAll,
+                )
+            } else if (state.isSearching) {
                 SearchTopBar(
                     initial = state.searchQuery.orEmpty(),
                     onSearch = viewModel::search,
@@ -203,14 +250,51 @@ fun FilesScreen(
                 BrowseTopBar(state, viewMode, viewModel, onEmptyTrash = { dialog = FilesDialog.EmptyTrash }, scrollBehavior)
             }
         },
+        floatingActionButtonPosition = if (state.selecting) FabPosition.Center else FabPosition.End,
         floatingActionButton = {
-            if (!state.isTrash && !state.isSearching) {
-                ExtendedFloatingActionButton(
-                    onClick = { showNewSheet = true },
-                    expanded = fabExpanded,
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.files_new)) },
-                )
+            AnimatedContent(
+                targetState = state.selecting,
+                transitionSpec = {
+                    (fadeIn() + slideInVertically { it / 2 }) togetherWith (fadeOut() + slideOutVertically { it / 2 })
+                },
+                label = "fab-island",
+            ) { selecting ->
+                if (selecting) {
+                    val picked = state.selectedFiles
+                    SelectionIsland(
+                        if (state.isTrash) {
+                            listOf(
+                                IslandAction(Icons.Rounded.RestoreFromTrash, stringResource(R.string.files_restore)) {
+                                    viewModel.restore(picked)
+                                },
+                                IslandAction(Icons.Rounded.DeleteForever, stringResource(R.string.files_delete_short)) {
+                                    dialog = FilesDialog.Delete(picked, forever = true)
+                                },
+                            )
+                        } else {
+                            listOf(
+                                IslandAction(Icons.AutoMirrored.Rounded.DriveFileMove, stringResource(R.string.files_move)) {
+                                    dialog = FilesDialog.Move(picked)
+                                },
+                                IslandAction(
+                                    Icons.Rounded.Download,
+                                    stringResource(R.string.files_download),
+                                    enabled = picked.any { !it.isFolder },
+                                ) { viewModel.download(picked) },
+                                IslandAction(Icons.Rounded.DeleteOutline, stringResource(R.string.files_delete_short)) {
+                                    dialog = FilesDialog.Delete(picked, forever = false)
+                                },
+                            )
+                        },
+                    )
+                } else if (!state.isTrash && !state.isSearching) {
+                    ExtendedFloatingActionButton(
+                        onClick = { showNewSheet = true },
+                        expanded = fabExpanded,
+                        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                        text = { Text(stringResource(R.string.files_new)) },
+                    )
+                }
             }
         },
     ) { padding ->
@@ -267,7 +351,8 @@ fun FilesScreen(
                             state = state,
                             gridState = gridState,
                             onClick = onFileClick,
-                            onLongClick = { sheetFile = it },
+                            onLongClick = viewModel::toggleSelection,
+                            onMore = { sheetFile = it },
                             onLoadMore = viewModel::loadMore,
                         )
                     }
@@ -277,6 +362,7 @@ fun FilesScreen(
                             state = state,
                             listState = listState,
                             onClick = onFileClick,
+                            onLongClick = viewModel::toggleSelection,
                             onMore = { sheetFile = it },
                             onLoadMore = viewModel::loadMore,
                         )
@@ -297,12 +383,14 @@ fun FilesScreen(
                     FileAction.Open -> viewModel.open(file)
                     FileAction.Preview -> onPreview(file)
                     FileAction.OpenWith -> viewModel.openWith(file)
-                    FileAction.Download -> viewModel.download(file)
+                    FileAction.Download -> viewModel.download(listOf(file))
                     FileAction.Share -> viewModel.share(file)
+                    FileAction.Move -> dialog = FilesDialog.Move(listOf(file))
+                    FileAction.Select -> viewModel.toggleSelection(file)
                     FileAction.Rename -> dialog = FilesDialog.Rename(file)
-                    FileAction.Delete -> dialog = FilesDialog.Delete(file, forever = false)
-                    FileAction.DeleteForever -> dialog = FilesDialog.Delete(file, forever = true)
-                    FileAction.Restore -> viewModel.restore(file)
+                    FileAction.Delete -> dialog = FilesDialog.Delete(listOf(file), forever = false)
+                    FileAction.DeleteForever -> dialog = FilesDialog.Delete(listOf(file), forever = true)
+                    FileAction.Restore -> viewModel.restore(listOf(file))
                 }
             },
         )
@@ -354,20 +442,55 @@ fun FilesScreen(
         }
 
         is FilesDialog.Delete -> {
+            val single = d.files.singleOrNull()
             ConfirmDialog(
                 title = stringResource(if (d.forever) R.string.files_delete_forever_title else R.string.files_delete_title),
                 text =
-                    stringResource(
-                        if (d.forever) R.string.files_delete_forever_body else R.string.files_delete_body,
-                        d.file.name,
-                    ),
+                    if (single != null) {
+                        stringResource(if (d.forever) R.string.files_delete_forever_body else R.string.files_delete_body, single.name)
+                    } else {
+                        pluralStringResource(
+                            if (d.forever) R.plurals.files_delete_forever_many else R.plurals.files_delete_many,
+                            d.files.size,
+                            d.files.size,
+                        )
+                    },
                 confirmLabel = stringResource(if (d.forever) R.string.files_delete_forever else R.string.files_delete),
                 onConfirm = {
                     dialog = null
-                    viewModel.delete(d.file)
+                    viewModel.delete(d.files)
                 },
                 onDismiss = { dialog = null },
             )
+        }
+
+        is FilesDialog.Move -> {
+            val moving = remember(d) { d.files.filter { it.isFolder }.map { it.path } }
+            val sourceFolder = state.uri
+            val picker = viewModel<FolderPickerViewModel>(key = "move-picker") { FolderPickerViewModel(context.container, sourceFolder) }
+            LaunchedEffect(d) { picker.open(sourceFolder) }
+            Dialog(
+                onDismissRequest = { dialog = null },
+                properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+            ) {
+                DialogSystemBars()
+                FolderPicker(
+                    viewModel = picker,
+                    title = pluralStringResource(R.plurals.files_move_title, d.files.size, d.files.size),
+                    confirmLabel = stringResource(R.string.files_move_here),
+                    onConfirm = { target ->
+                        dialog = null
+                        viewModel.move(d.files, target.uri)
+                    },
+                    onCancel = { dialog = null },
+                    // A folder can't go inside itself, and moving to where the files already are does nothing.
+                    blocked = { path -> moving.any { path == it || path.startsWith("$it/") } },
+                    canChoose = { uri ->
+                        uri.trimEnd('/') != sourceFolder.trimEnd('/') &&
+                            moving.none { uri == it || uri.startsWith("$it/") }
+                    },
+                )
+            }
         }
 
         FilesDialog.EmptyTrash -> {
@@ -517,7 +640,7 @@ private fun SearchTopBar(
 }
 
 @Composable
-private fun Breadcrumbs(
+internal fun Breadcrumbs(
     crumbs: List<Pair<String, String>>,
     inTrash: Boolean,
     onNavigate: (String) -> Unit,
@@ -605,12 +728,102 @@ private fun UploadsPanel(
     }
 }
 
+/** Replaces the top bar while files are selected. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(
+    count: Int,
+    allSelected: Boolean,
+    onClose: () -> Unit,
+    onSelectAll: () -> Unit,
+) {
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onClose) {
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.files_clear_selection))
+            }
+        },
+        title = { Text(pluralStringResource(R.plurals.files_selected, count, count)) },
+        actions = {
+            IconButton(onClick = onSelectAll, enabled = !allSelected) {
+                Icon(Icons.Rounded.SelectAll, contentDescription = stringResource(R.string.files_select_all))
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    )
+}
+
+private class IslandAction(
+    val icon: ImageVector,
+    val label: String,
+    val enabled: Boolean = true,
+    val onClick: () -> Unit,
+)
+
+/** The floating bar of batch actions shown at the bottom while selecting. */
+@Composable
+private fun SelectionIsland(actions: List<IslandAction>) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.inverseSurface,
+        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+        shadowElevation = 8.dp,
+    ) {
+        Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            actions.forEach { action ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(22.dp))
+                            .clickable(enabled = action.enabled, onClick = action.onClick)
+                            .alpha(if (action.enabled) 1f else 0.38f)
+                            .widthIn(min = 76.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Icon(action.icon, contentDescription = null)
+                    Spacer(Modifier.height(2.dp))
+                    Text(action.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+/** A check badge over a selected item's thumbnail; with [showEmpty], an empty ring on the others. */
+@Composable
+private fun SelectionMark(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    showEmpty: Boolean = false,
+) {
+    AnimatedVisibility(selected || showEmpty, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut()) {
+        Box(
+            modifier
+                .clip(CircleShape)
+                .then(
+                    if (selected) {
+                        Modifier.background(MaterialTheme.colorScheme.primary)
+                    } else {
+                        Modifier
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                            .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                    },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FileList(
     state: FilesUiState,
     listState: androidx.compose.foundation.lazy.LazyListState,
     onClick: (CloudFile) -> Unit,
+    onLongClick: (CloudFile) -> Unit,
     onMore: (CloudFile) -> Unit,
     onLoadMore: () -> Unit,
 ) {
@@ -626,17 +839,29 @@ private fun FileList(
     )
     LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 96.dp), modifier = Modifier.fillMaxSize()) {
         items(state.files, key = { it.id }) { file ->
+            val selected = file.id in state.selected
             ListItem(
                 modifier =
                     Modifier
                         .animateItem()
-                        .combinedClickable(onClick = { onClick(file) }, onLongClick = { onMore(file) }),
-                leadingContent = { FileThumbnail(file, Modifier.size(44.dp), iconSize = 24.dp, cornerRadius = 12.dp) },
+                        .combinedClickable(onClick = { onClick(file) }, onLongClick = { onLongClick(file) }),
+                colors =
+                    ListItemDefaults.colors(
+                        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                    ),
+                leadingContent = {
+                    Box {
+                        FileThumbnail(file, Modifier.size(44.dp), iconSize = 24.dp, cornerRadius = 12.dp)
+                        SelectionMark(selected, Modifier.size(44.dp))
+                    }
+                },
                 headlineContent = { Text(file.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 supportingContent = { Text(fileSubtitle(context, file), maxLines = 1) },
                 trailingContent = {
-                    IconButton(onClick = { onMore(file) }) {
-                        Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.files_more))
+                    if (!state.selecting) {
+                        IconButton(onClick = { onMore(file) }) {
+                            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.files_more))
+                        }
                     }
                 },
             )
@@ -652,6 +877,7 @@ private fun FileGrid(
     gridState: androidx.compose.foundation.lazy.grid.LazyGridState,
     onClick: (CloudFile) -> Unit,
     onLongClick: (CloudFile) -> Unit,
+    onMore: (CloudFile) -> Unit,
     onLoadMore: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -673,35 +899,66 @@ private fun FileGrid(
         modifier = Modifier.fillMaxSize(),
     ) {
         items(state.files, key = { it.id }) { file ->
+            val selected = file.id in state.selected
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
                 modifier =
                     Modifier
                         .animateItem()
                         .combinedClickable(onClick = { onClick(file) }, onLongClick = { onLongClick(file) }),
             ) {
-                FileThumbnail(
-                    file,
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1.25f)
-                        .padding(6.dp),
-                    iconSize = 48.dp,
-                    cornerRadius = 10.dp,
-                )
-                Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)) {
-                    Text(
-                        file.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                Box {
+                    FileThumbnail(
+                        file,
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1.25f)
+                            .padding(6.dp),
+                        iconSize = 48.dp,
+                        cornerRadius = 10.dp,
                     )
-                    Text(
-                        fileSubtitle(context, file),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+                    if (state.selecting) {
+                        SelectionMark(
+                            selected,
+                            Modifier
+                                .padding(12.dp)
+                                .size(28.dp),
+                            showEmpty = true,
+                        )
+                    }
+                }
+                Row(Modifier.padding(start = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .padding(bottom = 4.dp, end = if (state.selecting) 12.dp else 0.dp),
+                    ) {
+                        Text(
+                            file.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            fileSubtitle(context, file),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                    if (!state.selecting) {
+                        IconButton(onClick = { onMore(file) }, modifier = Modifier.size(40.dp)) {
+                            Icon(
+                                Icons.Rounded.MoreVert,
+                                contentDescription = stringResource(R.string.files_more),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.CreateNewFolder
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -58,7 +60,7 @@ import androidx.compose.ui.unit.dp
 import app.revedroid.R
 import app.revedroid.data.api.CloudFile
 
-enum class FileAction { Open, Preview, OpenWith, Download, Share, Rename, Delete, Restore, DeleteForever }
+enum class FileAction { Open, Preview, OpenWith, Download, Share, Move, Select, Rename, Delete, Restore, DeleteForever }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +87,7 @@ fun FileActionsSheet(
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             if (inTrash) {
+                SheetAction(Icons.Rounded.CheckCircleOutline, stringResource(R.string.files_select)) { onAction(FileAction.Select) }
                 SheetAction(Icons.Rounded.RestoreFromTrash, stringResource(R.string.files_restore)) { onAction(FileAction.Restore) }
                 SheetAction(Icons.Rounded.DeleteForever, stringResource(R.string.files_delete_forever), destructive = true) {
                     onAction(FileAction.DeleteForever)
@@ -102,7 +105,9 @@ fun FileActionsSheet(
                     SheetAction(Icons.Rounded.Download, stringResource(R.string.files_download)) { onAction(FileAction.Download) }
                 }
                 SheetAction(Icons.Rounded.Share, stringResource(R.string.files_share)) { onAction(FileAction.Share) }
+                SheetAction(Icons.AutoMirrored.Rounded.DriveFileMove, stringResource(R.string.files_move_to)) { onAction(FileAction.Move) }
                 SheetAction(Icons.Rounded.DriveFileRenameOutline, stringResource(R.string.files_rename)) { onAction(FileAction.Rename) }
+                SheetAction(Icons.Rounded.CheckCircleOutline, stringResource(R.string.files_select)) { onAction(FileAction.Select) }
                 SheetAction(Icons.Rounded.DeleteOutline, stringResource(R.string.files_delete), destructive = true) {
                     onAction(FileAction.Delete)
                 }

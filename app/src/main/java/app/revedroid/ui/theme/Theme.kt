@@ -11,8 +11,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
 import app.revedroid.data.store.ThemeMode
 
@@ -124,4 +126,21 @@ fun RevedroidTheme(
     }
 
     MaterialTheme(colorScheme = colors, content = content)
+}
+
+/**
+ * A full-screen dialog draws in its own window, which doesn't inherit the
+ * activity's light or dark bar icons; call this inside the dialog to match them.
+ */
+@Composable
+fun DialogSystemBars() {
+    val view = LocalView.current
+    val window = (view.parent as? DialogWindowProvider)?.window ?: return
+    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    SideEffect {
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
+        }
+    }
 }

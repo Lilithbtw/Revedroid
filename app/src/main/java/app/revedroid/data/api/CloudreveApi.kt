@@ -97,6 +97,11 @@ interface CloudreveApi {
     @HTTP(method = "DELETE", path = "file/trash")
     suspend fun emptyTrash(): ApiEnvelope
 
+    @POST("file/move")
+    suspend fun move(
+        @Body body: MoveRequest,
+    ): ApiEnvelope
+
     @POST("file/url")
     suspend fun fileUrl(
         @Body body: FileUrlRequest,

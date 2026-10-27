@@ -15,6 +15,7 @@ import app.revedroid.data.api.DeleteUploadSessionRequest
 import app.revedroid.data.api.FileUrlRequest
 import app.revedroid.data.api.FileUrlResponse
 import app.revedroid.data.api.ListResponse
+import app.revedroid.data.api.MoveRequest
 import app.revedroid.data.api.RenameRequest
 import app.revedroid.data.api.ShareCreateRequest
 import app.revedroid.data.api.SiteConfig
@@ -165,6 +166,13 @@ class FileRepository(
         permanently: Boolean = false,
     ) {
         container.authed { delete(DeleteFilesRequest(files.map { it.path }, skipSoftDelete = permanently)).ensureOk() }
+    }
+
+    suspend fun move(
+        files: List<CloudFile>,
+        destination: String,
+    ) {
+        container.authed { move(MoveRequest(files.map { it.path }, destination)).ensureOk() }
     }
 
     suspend fun restore(files: List<CloudFile>) {

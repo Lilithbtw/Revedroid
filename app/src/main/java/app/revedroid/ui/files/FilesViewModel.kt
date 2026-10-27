@@ -58,8 +58,12 @@ data class FilesUiState(
     val policy: StoragePolicy? = null,
     val uploads: List<UploadTask> = emptyList(),
     val fetching: FetchTask? = null,
+    /** Ids of the files picked for a batch action; empty when not selecting. */
+    val selected: Set<String> = emptySet(),
 ) {
     val isTrash: Boolean get() = root == CloudUris.TRASH_ROOT
+    val selecting: Boolean get() = selected.isNotEmpty()
+    val selectedFiles: List<CloudFile> get() = files.filter { it.id in selected }
     val isSearching: Boolean get() = searchQuery != null
     val crumbs: List<Pair<String, String>> get() = CloudUris.crumbs(uri)
     val atRoot: Boolean get() = crumbs.size <= 1
@@ -115,7 +119,7 @@ class FilesViewModel(
     fun open(folder: CloudFile) = navigate(folder.path)
 
     fun navigate(uri: String) {
-        _state.update { it.copy(uri = uri, searchQuery = null, files = emptyList(), loading = true) }
+        _state.update { it.copy(uri = uri, searchQuery = null, files = emptyList(), loading = true, selected = emptySet()) }
         load()
     }
 
@@ -148,7 +152,7 @@ class FilesViewModel(
     fun search(query: String) {
         val q = query.trim()
         if (q.isEmpty()) return closeSearch()
-        _state.update { it.copy(searchQuery = q, files = emptyList(), loading = true) }
+        _state.update { it.copy(searchQuery = q, files = emptyList(), loading = true, selected = emptySet()) }
         load()
     }
 
@@ -219,14 +223,24 @@ class FilesViewModel(
         val total = p.totalItems
         nextPage = if (nextToken == null && total != null && (p.page + 1) * p.pageSize < total) p.page + 1 else null
         _state.update {
+            val files = if (append) (it.files + response.files).distinctBy(CloudFile::id) else response.files
             it.copy(
-                files = if (append) (it.files + response.files).distinctBy(CloudFile::id) else response.files,
+                files = files,
                 canLoadMore = nextToken != null || nextPage != null,
                 policy = response.storagePolicy ?: it.policy,
                 error = null,
+                // Drop picks that vanished from the folder since they were made.
+                selected = if (append) it.selected else it.selected.intersect(files.mapTo(HashSet(), CloudFile::id)),
             )
         }
     }
+
+    fun toggleSelection(file: CloudFile) =
+        _state.update { it.copy(selected = if (file.id in it.selected) it.selected - file.id else it.selected + file.id) }
+
+    fun selectAll() = _state.update { it.copy(selected = it.files.mapTo(HashSet(), CloudFile::id)) }
+
+    fun clearSelection() = _state.update { it.copy(selected = emptySet()) }
 
     fun createFolder(name: String) =
         act {
@@ -242,20 +256,31 @@ class FilesViewModel(
         load()
     }
 
-    fun delete(file: CloudFile) =
+    fun delete(files: List<CloudFile>) =
         act {
             val permanent = _state.value.isTrash
-            repo.delete(listOf(file), permanently = permanent)
-            removeLocally(file)
-            _events.send(FilesEvent.Message(if (permanent) "Deleted ${file.name}" else "Moved ${file.name} to trash"))
+            repo.delete(files, permanently = permanent)
+            removeLocally(files)
+            val what = describe(files)
+            _events.send(FilesEvent.Message(if (permanent) "Deleted $what" else "Moved $what to trash"))
         }
 
-    fun restore(file: CloudFile) =
+    fun restore(files: List<CloudFile>) =
         act {
-            repo.restore(listOf(file))
-            removeLocally(file)
-            _events.send(FilesEvent.Message("Restored ${file.name}"))
+            repo.restore(files)
+            removeLocally(files)
+            _events.send(FilesEvent.Message("Restored ${describe(files)}"))
         }
+
+    fun move(
+        files: List<CloudFile>,
+        destination: String,
+    ) = act {
+        repo.move(files, destination)
+        removeLocally(files)
+        val folder = CloudUris.crumbs(destination).let { if (it.size <= 1) "My files" else it.last().first }
+        _events.send(FilesEvent.Message("Moved ${describe(files)} to $folder"))
+    }
 
     fun emptyTrash() =
         act {
@@ -264,11 +289,14 @@ class FilesViewModel(
             _events.send(FilesEvent.Message("Trash emptied"))
         }
 
-    fun download(file: CloudFile) =
+    /** Folders are skipped: the download manager only fetches single files. */
+    fun download(files: List<CloudFile>) =
         act {
-            val url = repo.downloadUrl(file)
-            container.downloader.enqueue(url, file.name)
-            _events.send(FilesEvent.Message("Downloading ${file.name}"))
+            val wanted = files.filterNot { it.isFolder }
+            if (wanted.isEmpty()) return@act
+            wanted.forEach { container.downloader.enqueue(repo.downloadUrl(it), it.name) }
+            clearSelection()
+            _events.send(FilesEvent.Message("Downloading ${describe(wanted)}"))
         }
 
     /** Copies [file] to the device, then asks the screen to show the app picker. */
@@ -333,7 +361,12 @@ class FilesViewModel(
         }
     }
 
-    private fun removeLocally(file: CloudFile) = _state.update { s -> s.copy(files = s.files.filterNot { it.id == file.id }) }
+    private fun removeLocally(files: List<CloudFile>) {
+        val ids = files.mapTo(HashSet(), CloudFile::id)
+        _state.update { s -> s.copy(files = s.files.filterNot { it.id in ids }, selected = s.selected - ids) }
+    }
+
+    private fun describe(files: List<CloudFile>): String = files.singleOrNull()?.name ?: "${files.size} items"
 
     private fun act(block: suspend () -> Unit) {
         viewModelScope.launch {

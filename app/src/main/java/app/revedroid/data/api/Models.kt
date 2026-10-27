@@ -209,6 +209,13 @@ data class FileUrlResponse(
 )
 
 @Serializable
+data class MoveRequest(
+    val uris: List<String>,
+    val dst: String,
+    val copy: Boolean = false,
+)
+
+@Serializable
 data class ShareCreateRequest(
     val uri: String,
 )
