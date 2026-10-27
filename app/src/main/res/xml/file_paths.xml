@@ -2,4 +2,6 @@
 <paths>
     <!-- Must match FileCache.DIR. -->
     <cache-path name="opened" path="opened/" />
+    <!-- Must match SharedItems.TEXT_DIR. -->
+    <cache-path name="shared" path="shared/" />
 </paths>

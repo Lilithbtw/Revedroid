@@ -28,12 +28,27 @@
             </intent-filter>
         </activity>
 
+        <!-- Receives files shared from other apps and asks which folder to upload them to. -->
+        <activity
+            android:name=".ShareActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Revedroid"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".data.upload.UploadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- Hands cached copies of cloud files to other apps for "Open with". -->
+        <!-- Hands cached copies of cloud files to other apps for "Open with",
+             and holds text shared into the app until it is uploaded. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

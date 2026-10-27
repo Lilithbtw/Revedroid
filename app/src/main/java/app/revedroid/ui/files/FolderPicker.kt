@@ -172,6 +172,7 @@ fun FolderPicker(
     modifier: Modifier = Modifier,
     blocked: (String) -> Boolean = { false },
     canChoose: (String) -> Boolean = { true },
+    header: @Composable () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -230,6 +231,7 @@ fun FolderPicker(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            header()
             Breadcrumbs(state.crumbs, inTrash = false, onNavigate = viewModel::open)
             when {
                 state.loading -> {

@@ -22,7 +22,10 @@ data class StoredSession(
     val serverUrl: String,
     val user: User,
     val token: Token,
-)
+) {
+    /** Identifies the account: the same user on the same server is the same account. */
+    val key: String get() = "${user.id}@$serverUrl"
+}
 
 enum class ThemeMode { System, Light, Dark }
 
@@ -83,11 +86,18 @@ class AppStore(
         }
     }
 
+    suspend fun lastUploadFolder(): String? = store.data.first()[LAST_UPLOAD_FOLDER]
+
+    suspend fun setLastUploadFolder(uri: String) {
+        store.edit { it[LAST_UPLOAD_FOLDER] = uri }
+    }
+
     private companion object {
         val SERVER_URL = stringPreferencesKey("server_url")
         val SESSION = stringPreferencesKey("session")
         val THEME = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val VIEW_MODE = stringPreferencesKey("view_mode")
+        val LAST_UPLOAD_FOLDER = stringPreferencesKey("last_upload_folder")
     }
 }

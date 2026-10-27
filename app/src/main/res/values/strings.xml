@@ -128,6 +128,22 @@
         <item quantity="other">%d more waiting</item>
     </plurals>
 
+    <!-- Saving files shared from other apps -->
+    <plurals name="save_title">
+        <item quantity="one">Save %d file to</item>
+        <item quantity="other">Save %d files to</item>
+    </plurals>
+    <string name="save_here">Upload here</string>
+    <string name="save_text_name">Shared text</string>
+    <plurals name="save_more">
+        <item quantity="one">and %d more</item>
+        <item quantity="other">and %d more</item>
+    </plurals>
+    <plurals name="save_started">
+        <item quantity="one">Uploading %d file to Revedroid</item>
+        <item quantity="other">Uploading %d files to Revedroid</item>
+    </plurals>
+
     <!-- Viewer -->
     <string name="viewer_error">Couldn\'t show this file</string>
 

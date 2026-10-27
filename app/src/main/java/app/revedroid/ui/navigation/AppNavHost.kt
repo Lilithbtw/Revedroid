@@ -1,5 +1,6 @@
 package app.revedroid.ui.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -46,6 +47,7 @@ import app.revedroid.ui.files.FilesScreen
 import app.revedroid.ui.files.FilesViewModel
 import app.revedroid.ui.login.LoginScreen
 import app.revedroid.ui.login.LoginViewModel
+import app.revedroid.ui.share.SaveToScreen
 import app.revedroid.ui.viewer.ViewerScreen
 import app.revedroid.ui.viewer.ViewerViewModel
 import kotlinx.serialization.Serializable
@@ -66,6 +68,10 @@ data object LoginRoute
 @Serializable
 data object HomeRoute
 
+/** Where files shared from another app are sent once the user is signed in. */
+@Serializable
+data object SaveRoute
+
 /** The fields of a [CloudFile] the viewer needs to fetch and cache it. */
 @Serializable
 data class ViewerRoute(
@@ -83,9 +89,19 @@ data class ViewerRoute(
 /** Saved-state key the challenge screen sets on the entry below it when it succeeds. */
 private const val CHALLENGE_PASSED = "challenge_passed"
 
+/**
+ * The app's screens. With [incoming] files (shared from another app) the flow
+ * ends at the folder picker instead of the file browser, and
+ * [onIncomingHandled] closes the share screen when the user is done.
+ */
 @Composable
-fun AppNavHost(navController: NavHostController = rememberNavController()) {
+fun AppNavHost(
+    navController: NavHostController = rememberNavController(),
+    incoming: List<Uri>? = null,
+    onIncomingHandled: () -> Unit = {},
+) {
     val container = LocalContext.current.container
+    val signedInRoute: Any = if (incoming != null) SaveRoute else HomeRoute
 
     // Mid-session challenges (e.g. clearance expired, IP changed) and expired
     // sessions can surface from any request, so they're handled globally.
@@ -120,7 +136,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                         }
 
                         is ConnectEvent.Connected -> {
-                            navController.navigate(if (event.signedIn) HomeRoute else LoginRoute) {
+                            navController.navigate(if (event.signedIn) signedInRoute else LoginRoute) {
                                 popUpTo(navController.graph.id) { inclusive = true }
                             }
                         }
@@ -149,7 +165,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             LoginScreen(
                 viewModel = vm,
                 onLoggedIn = {
-                    navController.navigate(HomeRoute) { popUpTo(navController.graph.id) { inclusive = true } }
+                    navController.navigate(signedInRoute) { popUpTo(navController.graph.id) { inclusive = true } }
                 },
                 onChangeServer = { navController.switchServer() },
             )
@@ -165,6 +181,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onSwitchServer = { navController.switchServer() },
                 onPreview = { navController.navigate(ViewerRoute(it)) },
             )
+        }
+
+        composable<SaveRoute> {
+            SaveToScreen(items = incoming.orEmpty(), onDone = onIncomingHandled)
         }
 
         composable<ViewerRoute> { entry ->
