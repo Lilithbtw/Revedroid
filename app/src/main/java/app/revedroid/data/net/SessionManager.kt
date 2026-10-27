@@ -7,12 +7,15 @@ import app.revedroid.data.api.LoginResponse
 import app.revedroid.data.api.NO_AUTH_HEADER
 import app.revedroid.data.api.RefreshTokenRequest
 import app.revedroid.data.api.Token
+import app.revedroid.data.api.User
 import app.revedroid.data.api.decode
 import app.revedroid.data.store.AppStore
+import app.revedroid.data.store.StoredAccounts
 import app.revedroid.data.store.StoredSession
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -31,16 +34,26 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Holds the signed-in user's tokens and refreshes the access token shortly
- * before it expires. Refresh runs synchronously on OkHttp's thread so the
- * interceptor can attach a valid token to the request it is processing.
+ * Holds the signed-in accounts and refreshes the active account's access token
+ * shortly before it expires. Refresh runs synchronously on OkHttp's thread so
+ * the interceptor can attach a valid token to the request it is processing.
  */
 class SessionManager(
     private val store: AppStore,
     private val scope: CoroutineScope,
 ) {
+    private val _accounts = MutableStateFlow<List<StoredSession>>(emptyList())
+
+    /** Every signed-in account, in the order they were added. */
+    val accounts: StateFlow<List<StoredSession>> = _accounts.asStateFlow()
+
     private val _session = MutableStateFlow<StoredSession?>(null)
+
+    /** The account the app is using. */
     val session: StateFlow<StoredSession?> = _session.asStateFlow()
+
+    // Conflated, so the store always ends up with the latest state, written in order.
+    private val writes = Channel<StoredAccounts>(Channel.CONFLATED)
 
     private val _expired = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
@@ -54,30 +67,71 @@ class SessionManager(
 
     fun load() {
         scope.launch {
-            _session.value = store.readSession()
+            val saved = store.readAccounts()
+            synchronized(this@SessionManager) {
+                _accounts.value = saved.accounts
+                _session.value = saved.accounts.firstOrNull { it.key == saved.active }
+            }
             loaded.complete(Unit)
+            for (accounts in writes) store.writeAccounts(accounts)
         }
     }
 
     suspend fun awaitLoaded() = loaded.await()
 
-    suspend fun signIn(
+    /** Adds the account (or replaces the same user's older session) and makes it active. */
+    fun signIn(
         serverUrl: String,
         login: LoginResponse,
     ) {
         val stored = StoredSession(serverUrl, login.user, login.token)
-        _session.value = stored
-        store.writeSession(stored)
+        update { accounts -> (accounts.filterNot { it.key == stored.key } + stored) to stored }
     }
 
-    suspend fun signOut() {
-        _session.value = null
-        store.writeSession(null)
+    /** Forgets the active account. Returns the account to continue with, if any are left. */
+    fun signOut(): StoredSession? {
+        val active = _session.value ?: return null
+        update { accounts -> accounts.filterNot { it.key == active.key } to null }
+        return _accounts.value.firstOrNull()
     }
 
-    fun hasSessionFor(serverUrl: String): Boolean {
-        val s = _session.value ?: return false
-        return s.serverUrl == serverUrl && s.token.refreshExpiresAt.isAfter(Instant.now())
+    fun remove(key: String) = update { accounts -> accounts.filterNot { it.key == key } to _session.value?.takeIf { it.key != key } }
+
+    fun switchTo(key: String): StoredSession? {
+        val target = _accounts.value.firstOrNull { it.key == key } ?: return null
+        update { accounts -> accounts to target }
+        return target
+    }
+
+    /** Keeps the stored profile (name, email) in step with what the server reports. */
+    fun updateUser(user: User) {
+        val current = _session.value ?: return
+        if (current.user.id != user.id || current.user == user) return
+        val updated = current.copy(user = user)
+        update { accounts -> accounts.map { if (it.key == updated.key) updated else it } to updated }
+    }
+
+    /** Keeps the accounts but uses none of them, so the next sign-in adds one. */
+    fun deactivate() = update { accounts -> accounts to null }
+
+    /**
+     * Makes a signed-in account on [serverUrl] active, preferring the current one.
+     * Returns false when there is none whose refresh token is still valid.
+     */
+    fun useAccountFor(serverUrl: String): Boolean {
+        val now = Instant.now()
+        val candidates = _accounts.value.filter { it.serverUrl == serverUrl && it.token.refreshExpiresAt.isAfter(now) }
+        val pick = candidates.firstOrNull { it.key == _session.value?.key } ?: candidates.firstOrNull() ?: return false
+        if (pick != _session.value) switchTo(pick.key)
+        return true
+    }
+
+    @Synchronized
+    private fun update(change: (List<StoredSession>) -> Pair<List<StoredSession>, StoredSession?>) {
+        val (accounts, active) = change(_accounts.value)
+        _accounts.value = accounts
+        _session.value = active
+        if (loaded.isCompleted) writes.trySend(StoredAccounts(accounts, active?.key))
     }
 
     /**
@@ -105,8 +159,7 @@ class SessionManager(
                 return null
             }
         val updated = current.copy(token = fresh)
-        _session.value = updated
-        scope.launch { store.writeSession(updated) }
+        update { accounts -> accounts.map { if (it.key == updated.key) updated else it } to updated }
         return fresh.accessToken
     }
 
@@ -115,8 +168,7 @@ class SessionManager(
 
     private fun expire() {
         if (_session.value == null) return
-        _session.value = null
-        scope.launch { store.writeSession(null) }
+        signOut()
         _expired.tryEmit(Unit)
     }
 

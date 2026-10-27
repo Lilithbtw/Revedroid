@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.ErrorOutline
@@ -34,6 +36,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -43,18 +47,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.revedroid.R
+import app.revedroid.data.net.ServerUrls
+import app.revedroid.data.store.StoredSession
 
 @Composable
 fun ConnectScreen(viewModel: ConnectViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val busy = state.stage is ConnectStage.Checking || state.stage is ConnectStage.Connected
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
@@ -144,6 +153,11 @@ fun ConnectScreen(viewModel: ConnectViewModel) {
                     label = "connect-stage",
                 ) { stage ->
                     StageCard(stage, state.cloudflareSeen, viewModel)
+                }
+
+                if (accounts.isNotEmpty() && !busy) {
+                    Spacer(Modifier.height(24.dp))
+                    SavedAccounts(accounts, onPick = viewModel::connectTo)
                 }
             }
         }
@@ -240,6 +254,41 @@ private fun StatusCard(
             if (progress) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (action != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { action() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavedAccounts(
+    accounts: List<StoredSession>,
+    onPick: (StoredSession) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            stringResource(R.string.connect_saved_accounts),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        )
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            accounts.forEach { account ->
+                ListItem(
+                    modifier = Modifier.clickable { onPick(account) },
+                    leadingContent = { Icon(Icons.Rounded.AccountCircle, contentDescription = null) },
+                    headlineContent = { Text(account.user.nickname.ifBlank { account.user.email.orEmpty() }, maxLines = 1) },
+                    supportingContent = {
+                        Text(
+                            listOfNotNull(account.user.email, ServerUrls.displayHost(account.serverUrl)).joinToString(" · "),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                )
             }
         }
     }

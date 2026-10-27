@@ -53,6 +53,12 @@ class FileCache(
     /** A content URI other apps can be granted read access to. */
     fun uriFor(file: File): Uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
 
+    suspend fun size(): Long = lock.withLock { withContext(Dispatchers.IO) { root.walk().filter { it.isFile }.sumOf { it.length() } } }
+
+    suspend fun clear() {
+        lock.withLock { withContext(Dispatchers.IO) { root.deleteRecursively() } }
+    }
+
     private suspend fun download(
         url: String,
         expectedSize: Long,

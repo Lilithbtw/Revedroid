@@ -92,6 +92,13 @@ class FileRepository(
     private val thumbExtsLock = Mutex()
     private var thumbExts: Set<String>? = null
 
+    /** Thumbnail links and file ids belong to one server, so forget them when it changes. */
+    fun onServerChanged() {
+        thumbCache.evictAll()
+        synchronized(noThumb) { noThumb.clear() }
+        thumbExts = null
+    }
+
     suspend fun list(
         uri: String,
         nextPageToken: String? = null,

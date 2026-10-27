@@ -13,7 +13,7 @@
     <string name="nav_files">My files</string>
     <string name="nav_shares">Shares</string>
     <string name="nav_trash">Trash</string>
-    <string name="nav_account">Account</string>
+    <string name="nav_settings">Settings</string>
 
     <!-- Connect -->
     <string name="connect_title">Connect to Cloudreve</string>
@@ -32,6 +32,7 @@
     <string name="connect_connected">Connected</string>
     <string name="connect_version">Cloudreve %1$s</string>
     <string name="connect_via_cloudflare">via Cloudflare</string>
+    <string name="connect_saved_accounts">Saved accounts</string>
 
     <!-- Challenge -->
     <string name="challenge_title">Security check</string>
@@ -199,4 +200,21 @@
     <string name="account_dynamic_color_body">Use colors from your wallpaper</string>
     <string name="account_switch_server">Switch server</string>
     <string name="account_sign_out">Sign out</string>
+
+    <!-- Settings -->
+    <string name="settings_accounts">Accounts</string>
+    <string name="settings_account_active">Active account</string>
+    <string name="settings_account_add">Add account</string>
+    <string name="settings_account_remove">Remove account</string>
+    <string name="settings_account_remove_title">Remove this account?</string>
+    <string name="settings_account_remove_body">%1$s on %2$s will be signed out of this device.</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_files">Files and sharing</string>
+    <string name="settings_share_expiry">Default link expiry</string>
+    <string name="settings_clear_cache">Clear cache</string>
+    <string name="settings_cache_size">%1$s of opened files and thumbnails</string>
+    <string name="settings_cache_measuring">Measuring…</string>
+    <string name="settings_updates">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_source">Source code</string>
 </resources>

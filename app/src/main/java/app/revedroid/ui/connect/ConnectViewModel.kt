@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.revedroid.AppContainer
 import app.revedroid.data.net.ServerUrls
 import app.revedroid.data.repo.PingResult
+import app.revedroid.data.store.StoredSession
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -65,9 +66,16 @@ sealed interface ConnectEvent {
 class ConnectViewModel(
     private val container: AppContainer,
     autoConnect: Boolean,
+    addAccount: Boolean = false,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ConnectUiState())
     val state: StateFlow<ConnectUiState> = _state.asStateFlow()
+
+    /** Signed-in accounts the user can go back to with one tap. */
+    val accounts: StateFlow<List<StoredSession>> = container.sessions.accounts
+
+    // When adding an account, connecting always leads to the sign-in form.
+    private var forceSignIn = addAccount
 
     private val _events = Channel<ConnectEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
@@ -87,6 +95,13 @@ class ConnectViewModel(
 
     fun onAddressChange(value: String) {
         _state.update { it.copy(address = value, addressError = false) }
+    }
+
+    fun connectTo(account: StoredSession) {
+        forceSignIn = false
+        container.sessions.switchTo(account.key)
+        _state.update { it.copy(address = account.serverUrl, addressError = false) }
+        connect()
     }
 
     fun connect() {
@@ -137,7 +152,7 @@ class ConnectViewModel(
                     container.cookieJar.flush()
                     _state.update { it.copy(stage = ConnectStage.Connected(result.version)) }
                     container.sessions.awaitLoaded()
-                    _events.send(ConnectEvent.Connected(container.sessions.hasSessionFor(target)))
+                    _events.send(ConnectEvent.Connected(!forceSignIn && container.sessions.useAccountFor(target)))
                     return
                 }
 

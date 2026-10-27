@@ -28,6 +28,13 @@ data class StoredSession(
     val key: String get() = "${user.id}@$serverUrl"
 }
 
+/** Every signed-in account, and the one the app is currently using. */
+@Serializable
+data class StoredAccounts(
+    val accounts: List<StoredSession> = emptyList(),
+    val active: String? = null,
+)
+
 enum class ThemeMode { System, Light, Dark }
 
 enum class FileViewMode { List, Grid }
@@ -73,22 +80,6 @@ class AppStore(
         store.edit { it[VIEW_MODE] = mode.name }
     }
 
-    suspend fun readSession(): StoredSession? {
-        val sealed = store.data.first()[SESSION] ?: return null
-        val plain = secretBox.decrypt(sealed) ?: return null
-        return runCatching { CloudreveJson.decodeFromString<StoredSession>(plain) }.getOrNull()
-    }
-
-    suspend fun writeSession(session: StoredSession?) {
-        store.edit { prefs ->
-            if (session == null) {
-                prefs.remove(SESSION)
-            } else {
-                prefs[SESSION] = secretBox.encrypt(CloudreveJson.encodeToString(StoredSession.serializer(), session))
-            }
-        }
-    }
-
     suspend fun setShareExpiry(expiry: ShareExpiry) {
         store.edit { it[SHARE_EXPIRY] = expiry.name }
     }
@@ -99,9 +90,34 @@ class AppStore(
         store.edit { it[LAST_UPLOAD_FOLDER] = uri }
     }
 
+    suspend fun readAccounts(): StoredAccounts {
+        val prefs = store.data.first()
+        prefs[ACCOUNTS]
+            ?.let(secretBox::decrypt)
+            ?.let { runCatching { CloudreveJson.decodeFromString<StoredAccounts>(it) }.getOrNull() }
+            ?.let { return it }
+        // Versions before multi-account support kept a single session; it becomes
+        // the only account, so updating doesn't sign anyone out.
+        val legacy =
+            prefs[SESSION]
+                ?.let(secretBox::decrypt)
+                ?.let { runCatching { CloudreveJson.decodeFromString<StoredSession>(it) }.getOrNull() }
+                ?: return StoredAccounts()
+        return StoredAccounts(listOf(legacy), legacy.key)
+    }
+
+    suspend fun writeAccounts(accounts: StoredAccounts) {
+        val sealed = secretBox.encrypt(CloudreveJson.encodeToString(StoredAccounts.serializer(), accounts))
+        store.edit { prefs ->
+            prefs[ACCOUNTS] = sealed
+            prefs.remove(SESSION)
+        }
+    }
+
     private companion object {
         val SERVER_URL = stringPreferencesKey("server_url")
         val SESSION = stringPreferencesKey("session")
+        val ACCOUNTS = stringPreferencesKey("accounts")
         val THEME = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val VIEW_MODE = stringPreferencesKey("view_mode")

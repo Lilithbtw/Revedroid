@@ -4,6 +4,7 @@ import app.revedroid.AppContainer
 import app.revedroid.data.api.ApiCode
 import app.revedroid.data.api.Capacity
 import app.revedroid.data.api.CaptchaImage
+import app.revedroid.data.api.CloudreveJson
 import app.revedroid.data.api.LoginResponse
 import app.revedroid.data.api.RefreshTokenRequest
 import app.revedroid.data.api.SiteConfig
@@ -11,13 +12,20 @@ import app.revedroid.data.api.TwoFactorLoginRequest
 import app.revedroid.data.api.User
 import app.revedroid.data.api.decode
 import app.revedroid.data.api.toException
+import app.revedroid.data.net.ServerUrls
+import app.revedroid.data.store.StoredSession
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 sealed interface LoginOutcome {
     data class Success(
@@ -79,13 +87,39 @@ class AuthRepository(
 
     suspend fun capacity(): Capacity = container.authed { capacity().decode() }
 
-    /** Revokes the refresh token server-side when reachable, then forgets the session locally. */
-    suspend fun signOut() {
+    /**
+     * Revokes the refresh token server-side when reachable, then forgets the
+     * account locally. Returns the account to continue with, if any are left.
+     */
+    suspend fun signOut(): StoredSession? {
         val token =
             container.sessions.session.value
                 ?.token
                 ?.refreshToken
         if (token != null) runCatching { api.signOut(RefreshTokenRequest(token)) }
-        container.sessions.signOut()
+        return container.sessions.signOut()
+    }
+
+    /** Signs out an account that isn't the active one; its server may differ from the current one. */
+    suspend fun remove(account: StoredSession) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val body =
+                    CloudreveJson
+                        .encodeToString(RefreshTokenRequest.serializer(), RefreshTokenRequest(account.token.refreshToken))
+                        .toRequestBody("application/json".toMediaType())
+                val request =
+                    Request
+                        .Builder()
+                        .url(ServerUrls.api(account.serverUrl, "session/token"))
+                        .delete(body)
+                        .build()
+                container.coreClient
+                    .newCall(request)
+                    .execute()
+                    .close()
+            }
+        }
+        container.sessions.remove(account.key)
     }
 }

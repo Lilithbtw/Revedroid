@@ -70,7 +70,7 @@ val Context.container: AppContainer get() = (applicationContext as RevedroidApp)
 
 /** Manual dependency graph; small enough that a DI framework isn't worth it. */
 class AppContainer(
-    private val context: Context,
+    val context: Context,
 ) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val store = AppStore(context)
@@ -135,6 +135,7 @@ class AppContainer(
     @Synchronized
     fun setServer(url: String) {
         if (url == serverUrl && api != null) return
+        if (serverUrl != null) fileRepository.onServerChanged()
         serverUrl = url
         api =
             Retrofit
@@ -160,11 +161,14 @@ class AppContainer(
     fun api(): CloudreveApi = api ?: error("No server configured")
 
     /** Runs an authenticated call, signing out if the server says the session is gone. */
-    suspend fun <T> authed(block: suspend CloudreveApi.() -> T): T =
-        try {
+    suspend fun <T> authed(block: suspend CloudreveApi.() -> T): T {
+        val server = serverUrl
+        return try {
             api().block()
         } catch (e: ApiException) {
-            if (e.code == ApiCode.LOGIN_REQUIRED) sessions.onUnauthorized()
+            // Only the account the request was made for can have expired.
+            if (e.code == ApiCode.LOGIN_REQUIRED && server == sessions.session.value?.serverUrl) sessions.onUnauthorized()
             throw e
         }
+    }
 }

@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -55,9 +55,11 @@ import app.revedroid.ui.viewer.ViewerScreen
 import app.revedroid.ui.viewer.ViewerViewModel
 import kotlinx.serialization.Serializable
 
+/** [addAccount] leads to the sign-in form even if an account for the server exists. */
 @Serializable
 data class ConnectRoute(
     val autoConnect: Boolean = true,
+    val addAccount: Boolean = false,
 )
 
 @Serializable
@@ -126,7 +128,7 @@ fun AppNavHost(
     NavHost(navController = navController, startDestination = ConnectRoute()) {
         composable<ConnectRoute> { entry ->
             val route = entry.toRoute<ConnectRoute>()
-            val vm = viewModel { ConnectViewModel(container, route.autoConnect) }
+            val vm = viewModel { ConnectViewModel(container, route.autoConnect, route.addAccount) }
             val passed by entry.challengePassed()
             LaunchedEffect(passed) { if (passed > 0) vm.onChallengePassed() }
             LaunchedEffect(vm) {
@@ -178,10 +180,20 @@ fun AppNavHost(
             val passed by entry.challengePassed()
             HomeScreen(
                 refreshSignal = passed,
-                onSignedOut = {
-                    navController.navigate(LoginRoute) { popUpTo(navController.graph.id) { inclusive = true } }
+                onSignedOut = { another ->
+                    if (another) {
+                        navController.reconnect()
+                    } else {
+                        navController.navigate(LoginRoute) { popUpTo(navController.graph.id) { inclusive = true } }
+                    }
                 },
                 onSwitchServer = { navController.switchServer() },
+                onAccountSwitched = { navController.reconnect() },
+                onAddAccount = {
+                    navController.navigate(ConnectRoute(autoConnect = false, addAccount = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
                 onPreview = { navController.navigate(ViewerRoute(it)) },
             )
         }
@@ -202,6 +214,11 @@ private fun NavHostController.switchServer() {
     navigate(ConnectRoute(autoConnect = false)) { popUpTo(graph.id) { inclusive = true } }
 }
 
+/** Starts over with the saved server, e.g. after switching to another account. */
+private fun NavHostController.reconnect() {
+    navigate(ConnectRoute()) { popUpTo(graph.id) { inclusive = true } }
+}
+
 @Composable
 private fun NavBackStackEntry.challengePassed() = savedStateHandle.getStateFlow(CHALLENGE_PASSED, 0L).collectAsStateWithLifecycle()
 
@@ -212,14 +229,16 @@ private enum class HomeTab(
     Files(R.string.nav_files, Icons.Rounded.Folder),
     Shares(R.string.nav_shares, Icons.Rounded.Link),
     Trash(R.string.nav_trash, Icons.Rounded.Delete),
-    Account(R.string.nav_account, Icons.Rounded.AccountCircle),
+    Settings(R.string.nav_settings, Icons.Rounded.Settings),
 }
 
 @Composable
 private fun HomeScreen(
     refreshSignal: Long,
-    onSignedOut: () -> Unit,
+    onSignedOut: (anotherAccount: Boolean) -> Unit,
     onSwitchServer: () -> Unit,
+    onAccountSwitched: () -> Unit,
+    onAddAccount: () -> Unit,
     onPreview: (CloudFile) -> Unit,
 ) {
     val container = LocalContext.current.container
@@ -259,10 +278,29 @@ private fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         when (HomeTab.entries[tab]) {
-            HomeTab.Files -> FilesScreen(filesVm, refreshSignal, onPreview, modifier)
-            HomeTab.Shares -> SharesScreen(sharesVm, refreshSignal, modifier)
-            HomeTab.Trash -> FilesScreen(trashVm, refreshSignal, onPreview, modifier)
-            HomeTab.Account -> AccountScreen(accountVm, refreshSignal, onSignedOut, onSwitchServer, modifier)
+            HomeTab.Files -> {
+                FilesScreen(filesVm, refreshSignal, onPreview, modifier)
+            }
+
+            HomeTab.Shares -> {
+                SharesScreen(sharesVm, refreshSignal, modifier)
+            }
+
+            HomeTab.Trash -> {
+                FilesScreen(trashVm, refreshSignal, onPreview, modifier)
+            }
+
+            HomeTab.Settings -> {
+                AccountScreen(
+                    viewModel = accountVm,
+                    refreshSignal = refreshSignal,
+                    onSignedOut = onSignedOut,
+                    onSwitchServer = onSwitchServer,
+                    onAccountSwitched = onAccountSwitched,
+                    onAddAccount = onAddAccount,
+                    modifier = modifier,
+                )
+            }
         }
     }
 }
