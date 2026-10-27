@@ -21,6 +21,31 @@ fun signingValue(
     env: String,
 ): String? = keystoreProperties.getProperty(key) ?: System.getenv(env)?.takeIf { it.isNotEmpty() }
 
+// The version comes from the release tag: CI passes -PrevedroidVersion=1.2.3 for tag
+// v1.2.3, and local builds fall back to the newest v* tag in the checkout.
+val appVersion: String =
+    providers.gradleProperty("revedroidVersion").orNull
+        ?: providers
+            .exec {
+                commandLine("git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*")
+                isIgnoreExitValue = true
+            }.standardOutput.asText
+            .get()
+            .trim()
+            .removePrefix("v")
+            .ifEmpty { "0.0.1" }
+
+// 1.2.3 becomes 1002003, so each release tag installs as an upgrade over the last.
+// Releases before this scheme all used versionCode 1.
+val appVersionCode: Int =
+    appVersion
+        .substringBefore('-')
+        .split('.')
+        .map { it.toIntOrNull() ?: 0 }
+        .plus(listOf(0, 0, 0))
+        .let { (major, minor, patch) -> major * 1_000_000 + minor * 1_000 + patch }
+        .coerceAtLeast(2)
+
 android {
     namespace = "app.revedroid"
     compileSdk {
@@ -31,8 +56,8 @@ android {
         applicationId = "app.revedroid"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
     }
 
     signingConfigs {
@@ -45,6 +70,12 @@ android {
     }
 
     buildTypes {
+        // A separate package id lets a debug build sit next to the release app
+        // instead of clashing with its signature.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile?.exists() == true }
             isMinifyEnabled = true

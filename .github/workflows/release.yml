@@ -74,7 +74,9 @@ jobs:
           REVEDROID_KEYSTORE_PASSWORD: ${{ secrets.REVEDROID_KEYSTORE_PASSWORD }}
           REVEDROID_KEY_ALIAS: ${{ secrets.REVEDROID_KEY_ALIAS }}
           REVEDROID_KEY_PASSWORD: ${{ secrets.REVEDROID_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease
+          TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
+        # The tag sets versionName and versionCode, so each release upgrades the last.
+        run: ./gradlew :app:assembleRelease -PrevedroidVersion="${TAG#v}"
       - name: Verify signature
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
