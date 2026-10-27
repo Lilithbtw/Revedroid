@@ -23,7 +23,7 @@ class ShareActivity : ComponentActivity() {
             return
         }
         setContent {
-            RevedroidRoot {
+            RevedroidRoot(onLeave = ::finish) {
                 AppNavHost(incoming = items, onIncomingHandled = ::finish)
             }
         }

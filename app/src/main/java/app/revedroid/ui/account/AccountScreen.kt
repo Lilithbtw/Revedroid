@@ -26,12 +26,17 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -82,12 +87,17 @@ import app.revedroid.data.api.User
 import app.revedroid.data.net.ServerUrls
 import app.revedroid.data.repo.ShareExpiry
 import app.revedroid.data.store.AppSettings
+import app.revedroid.data.store.LockTimeout
+import app.revedroid.data.store.Passcode
 import app.revedroid.data.store.StoredSession
 import app.revedroid.data.store.ThemeMode
 import app.revedroid.ui.components.userMessage
 import app.revedroid.ui.files.ConfirmDialog
 import app.revedroid.ui.files.formatSize
 import app.revedroid.ui.files.label
+import app.revedroid.ui.lock.CheckPasscodeDialog
+import app.revedroid.ui.lock.CreatePasscodeDialog
+import app.revedroid.ui.lock.canUseBiometrics
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.CancellationException
@@ -157,6 +167,20 @@ class AccountViewModel(
 
     fun setDynamicColor(enabled: Boolean) = viewModelScope.launch { container.store.setDynamicColor(enabled) }
 
+    fun setPasscode(passcode: String) =
+        viewModelScope.launch {
+            val hash = withContext(Dispatchers.Default) { Passcode.hash(passcode) }
+            container.store.setPasscode(hash, passcode.length)
+        }
+
+    fun turnOffAppLock() = viewModelScope.launch { container.store.setPasscode(null) }
+
+    fun setBiometricUnlock(enabled: Boolean) = viewModelScope.launch { container.store.setBiometricUnlock(enabled) }
+
+    fun setLockTimeout(timeout: LockTimeout) = viewModelScope.launch { container.store.setLockTimeout(timeout) }
+
+    fun setHideContent(enabled: Boolean) = viewModelScope.launch { container.store.setHideContent(enabled) }
+
     fun setShareExpiry(expiry: ShareExpiry) = viewModelScope.launch { container.store.setShareExpiry(expiry) }
 
     fun clearCache() {
@@ -218,6 +242,12 @@ class AccountViewModel(
 }
 
 private sealed interface SettingsDialog {
+    data object CreatePasscode : SettingsDialog
+
+    data object ChangePasscode : SettingsDialog
+
+    data object TurnOffLock : SettingsDialog
+
     data class RemoveAccount(
         val account: StoredSession,
     ) : SettingsDialog
@@ -241,6 +271,7 @@ fun AccountScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var dialog by remember { mutableStateOf<SettingsDialog?>(null) }
+    val biometricsAvailable = remember { context.canUseBiometrics() }
 
     LaunchedEffect(refreshSignal) { viewModel.refresh() }
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
@@ -326,6 +357,47 @@ fun AccountScreen(
                     icon = Icons.Rounded.PersonAdd,
                     title = stringResource(R.string.settings_account_add),
                     onClick = { viewModel.addAccount(onAddAccount) },
+                )
+            }
+
+            Section(stringResource(R.string.settings_security)) {
+                SettingSwitch(
+                    icon = Icons.Rounded.Lock,
+                    title = stringResource(R.string.settings_app_lock),
+                    body = stringResource(R.string.settings_app_lock_body),
+                    checked = settings.appLock,
+                    onCheckedChange = { on -> dialog = if (on) SettingsDialog.CreatePasscode else SettingsDialog.TurnOffLock },
+                )
+                if (settings.appLock) {
+                    SettingRow(
+                        icon = Icons.Rounded.Password,
+                        title = stringResource(R.string.settings_change_passcode),
+                        onClick = { dialog = SettingsDialog.ChangePasscode },
+                    )
+                    if (biometricsAvailable) {
+                        SettingSwitch(
+                            icon = Icons.Rounded.Fingerprint,
+                            title = stringResource(R.string.settings_biometric),
+                            body = stringResource(R.string.settings_biometric_body),
+                            checked = settings.biometricUnlock,
+                            onCheckedChange = viewModel::setBiometricUnlock,
+                        )
+                    }
+                    SettingChoice(
+                        icon = Icons.Rounded.Timer,
+                        title = stringResource(R.string.settings_lock_after),
+                        options = LockTimeout.entries,
+                        selected = settings.lockTimeout,
+                        label = { stringResource(it.label()) },
+                        onSelect = viewModel::setLockTimeout,
+                    )
+                }
+                SettingSwitch(
+                    icon = Icons.Rounded.VisibilityOff,
+                    title = stringResource(R.string.settings_hide_content),
+                    body = stringResource(R.string.settings_hide_content_body),
+                    checked = settings.hideContent,
+                    onCheckedChange = viewModel::setHideContent,
                 )
             }
 
@@ -422,6 +494,35 @@ fun AccountScreen(
     when (val d = dialog) {
         null -> {}
 
+        SettingsDialog.CreatePasscode -> {
+            CreatePasscodeDialog(
+                onCreated = {
+                    dialog = null
+                    viewModel.setPasscode(it)
+                },
+                onDismiss = { dialog = null },
+            )
+        }
+
+        SettingsDialog.ChangePasscode -> {
+            CheckPasscodeDialog(
+                passcodeLength = settings.passcodeLength,
+                onConfirmed = { dialog = SettingsDialog.CreatePasscode },
+                onDismiss = { dialog = null },
+            )
+        }
+
+        SettingsDialog.TurnOffLock -> {
+            CheckPasscodeDialog(
+                passcodeLength = settings.passcodeLength,
+                onConfirmed = {
+                    dialog = null
+                    viewModel.turnOffAppLock()
+                },
+                onDismiss = { dialog = null },
+            )
+        }
+
         is SettingsDialog.RemoveAccount -> {
             ConfirmDialog(
                 title = stringResource(R.string.settings_account_remove_title),
@@ -443,6 +544,14 @@ fun AccountScreen(
 }
 
 private const val SOURCE_URL = "https://github.com/Lilithbtw/Revedroid"
+
+private fun LockTimeout.label(): Int =
+    when (this) {
+        LockTimeout.Immediately -> R.string.lock_timeout_immediately
+        LockTimeout.OneMinute -> R.string.lock_timeout_one_minute
+        LockTimeout.FiveMinutes -> R.string.lock_timeout_five_minutes
+        LockTimeout.ThirtyMinutes -> R.string.lock_timeout_thirty_minutes
+    }
 
 @Composable
 private fun ProfileCard(

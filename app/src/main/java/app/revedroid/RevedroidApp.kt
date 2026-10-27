@@ -27,6 +27,7 @@ import app.revedroid.data.repo.FileCache
 import app.revedroid.data.repo.FileRepository
 import app.revedroid.data.repo.ServerRepository
 import app.revedroid.data.repo.ShareRepository
+import app.revedroid.data.store.AppLock
 import app.revedroid.data.store.AppStore
 import app.revedroid.data.upload.UploadManager
 import app.revedroid.data.upload.UploadNotifications
@@ -54,6 +55,7 @@ class RevedroidApp :
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        registerActivityLifecycleCallbacks(container.appLock)
         UploadNotifications.createChannel(this)
     }
 
@@ -77,6 +79,7 @@ class AppContainer(
     val cookieJar = WebViewCookieJar()
     val challengeMonitor = ChallengeMonitor()
     val sessions = SessionManager(store, appScope)
+    val appLock = AppLock(store, appScope)
 
     /** Must equal the WebView's UA, since Cloudflare binds clearance cookies to it. */
     val userAgent: String =

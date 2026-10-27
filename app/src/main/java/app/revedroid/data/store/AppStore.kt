@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.revedroid.data.api.CloudreveJson
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import java.time.Duration
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "revedroid")
 
@@ -39,10 +41,25 @@ enum class ThemeMode { System, Light, Dark }
 
 enum class FileViewMode { List, Grid }
 
+/** How long the app may stay in the background before the passcode is asked for again. */
+enum class LockTimeout(
+    val delay: Duration,
+) {
+    Immediately(Duration.ZERO),
+    OneMinute(Duration.ofMinutes(1)),
+    FiveMinutes(Duration.ofMinutes(5)),
+    ThirtyMinutes(Duration.ofMinutes(30)),
+}
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.System,
     val dynamicColor: Boolean = true,
     val viewMode: FileViewMode = FileViewMode.List,
+    val appLock: Boolean = false,
+    val passcodeLength: Int = 0,
+    val biometricUnlock: Boolean = false,
+    val lockTimeout: LockTimeout = LockTimeout.Immediately,
+    val hideContent: Boolean = false,
     val shareExpiry: ShareExpiry = ShareExpiry.Never,
 )
 
@@ -58,6 +75,11 @@ class AppStore(
                 themeMode = prefs[THEME].toEnum(ThemeMode.System),
                 dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
                 viewMode = prefs[VIEW_MODE].toEnum(FileViewMode.List),
+                appLock = prefs[PASSCODE] != null,
+                passcodeLength = prefs[PASSCODE_LENGTH] ?: 0,
+                biometricUnlock = prefs[BIOMETRIC] ?: false,
+                lockTimeout = prefs[LOCK_TIMEOUT].toEnum(LockTimeout.Immediately),
+                hideContent = prefs[HIDE_CONTENT] ?: false,
                 shareExpiry = prefs[SHARE_EXPIRY].toEnum(ShareExpiry.Never),
             )
         }
@@ -78,6 +100,37 @@ class AppStore(
 
     suspend fun setViewMode(mode: FileViewMode) {
         store.edit { it[VIEW_MODE] = mode.name }
+    }
+
+    suspend fun passcodeHash(): String? = store.data.first()[PASSCODE]
+
+    /** Stores the hash from [Passcode.hash], or turns the app lock off when null. */
+    suspend fun setPasscode(
+        hash: String?,
+        length: Int = 0,
+    ) {
+        store.edit { prefs ->
+            if (hash == null) {
+                prefs.remove(PASSCODE)
+                prefs.remove(PASSCODE_LENGTH)
+                prefs.remove(BIOMETRIC)
+            } else {
+                prefs[PASSCODE] = hash
+                prefs[PASSCODE_LENGTH] = length
+            }
+        }
+    }
+
+    suspend fun setBiometricUnlock(enabled: Boolean) {
+        store.edit { it[BIOMETRIC] = enabled }
+    }
+
+    suspend fun setLockTimeout(timeout: LockTimeout) {
+        store.edit { it[LOCK_TIMEOUT] = timeout.name }
+    }
+
+    suspend fun setHideContent(enabled: Boolean) {
+        store.edit { it[HIDE_CONTENT] = enabled }
     }
 
     suspend fun setShareExpiry(expiry: ShareExpiry) {
@@ -121,6 +174,11 @@ class AppStore(
         val THEME = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val VIEW_MODE = stringPreferencesKey("view_mode")
+        val PASSCODE = stringPreferencesKey("passcode")
+        val PASSCODE_LENGTH = intPreferencesKey("passcode_length")
+        val BIOMETRIC = booleanPreferencesKey("biometric_unlock")
+        val LOCK_TIMEOUT = stringPreferencesKey("lock_timeout")
+        val HIDE_CONTENT = booleanPreferencesKey("hide_content")
         val SHARE_EXPIRY = stringPreferencesKey("share_expiry")
         val LAST_UPLOAD_FOLDER = stringPreferencesKey("last_upload_folder")
 

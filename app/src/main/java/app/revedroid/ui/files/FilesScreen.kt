@@ -170,6 +170,7 @@ fun FilesScreen(
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
     val uploads by viewModel.uploads.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val appLock = context.container.appLock
     val withNotifications = rememberNotificationPermission()
     val snackbar = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -194,10 +195,12 @@ fun FilesScreen(
                 }
 
                 is FilesEvent.ShareLink -> {
+                    appLock.expectExternalActivity()
                     context.sendLink(event.url, event.name)
                 }
 
                 is FilesEvent.OpenWith -> {
+                    appLock.expectExternalActivity()
                     context.openWith(event.uri, event.name)
                 }
             }
@@ -403,6 +406,7 @@ fun FilesScreen(
         NewItemSheet(
             onUpload = {
                 showNewSheet = false
+                appLock.expectExternalActivity()
                 pickFiles.launch(arrayOf("*/*"))
             },
             onNewFolder = {

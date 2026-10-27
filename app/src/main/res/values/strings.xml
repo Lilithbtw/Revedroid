@@ -7,6 +7,7 @@
     <string name="action_clear">Clear</string>
     <string name="action_create">Create</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="action_next">Next</string>
     <string name="action_reload">Reload</string>
     <string name="action_retry">Retry</string>
 
@@ -208,6 +209,19 @@
     <string name="settings_account_remove">Remove account</string>
     <string name="settings_account_remove_title">Remove this account?</string>
     <string name="settings_account_remove_body">%1$s on %2$s will be signed out of this device.</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_app_lock">App lock</string>
+    <string name="settings_app_lock_body">Ask for a passcode when opening Revedroid</string>
+    <string name="settings_change_passcode">Change passcode</string>
+    <string name="settings_biometric">Unlock with biometrics</string>
+    <string name="settings_biometric_body">Use your fingerprint or face instead of the passcode</string>
+    <string name="settings_lock_after">Lock after leaving the app</string>
+    <string name="lock_timeout_immediately">Immediately</string>
+    <string name="lock_timeout_one_minute">After 1 minute</string>
+    <string name="lock_timeout_five_minutes">After 5 minutes</string>
+    <string name="lock_timeout_thirty_minutes">After 30 minutes</string>
+    <string name="settings_hide_content">Hide app content</string>
+    <string name="settings_hide_content_body">Block screenshots and hide the app\'s preview in recent apps</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_files">Files and sharing</string>
     <string name="settings_share_expiry">Default link expiry</string>
@@ -217,4 +231,18 @@
     <string name="settings_updates">About</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_source">Source code</string>
+
+    <!-- App lock -->
+    <string name="lock_title">Enter your passcode</string>
+    <string name="lock_wrong">Wrong passcode</string>
+    <string name="lock_wait">Too many attempts. Try again in %1$d s</string>
+    <string name="lock_wait_later">Too many attempts. Try again later.</string>
+    <string name="lock_biometric_title">Unlock Revedroid</string>
+    <string name="lock_use_passcode">Use passcode</string>
+    <string name="passcode_create_title">Choose a passcode</string>
+    <string name="passcode_create_hint">Use 4 to 8 digits</string>
+    <string name="passcode_confirm_title">Enter it again</string>
+    <string name="passcode_mismatch">The passcodes didn\'t match. Try again.</string>
+    <string name="passcode_current_title">Enter your current passcode</string>
+    <string name="passcode_delete">Delete digit</string>
 </resources>

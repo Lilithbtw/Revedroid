@@ -201,6 +201,7 @@ fun SharesScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val appLock = context.container.appLock
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -281,10 +282,12 @@ fun SharesScreen(
             },
             onSend = {
                 sheetShare = null
+                appLock.expectExternalActivity()
                 context.sendLink(share.url, share.name)
             },
             onOpen = {
                 sheetShare = null
+                appLock.expectExternalActivity()
                 context.startActivity(Intent(Intent.ACTION_VIEW, share.url.toUri()))
             },
             onDelete = {

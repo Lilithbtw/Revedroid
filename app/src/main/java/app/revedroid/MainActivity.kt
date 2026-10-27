@@ -14,7 +14,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            RevedroidRoot {
+            RevedroidRoot(onLeave = { moveTaskToBack(true) }) {
                 AppNavHost()
             }
         }
