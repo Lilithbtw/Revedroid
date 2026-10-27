@@ -29,6 +29,7 @@ import app.revedroid.data.repo.ServerRepository
 import app.revedroid.data.repo.ShareRepository
 import app.revedroid.data.store.AppLock
 import app.revedroid.data.store.AppStore
+import app.revedroid.data.update.AppUpdater
 import app.revedroid.data.upload.UploadManager
 import app.revedroid.data.upload.UploadNotifications
 import coil3.ImageLoader
@@ -128,6 +129,7 @@ class AppContainer(
     val uploads = UploadManager(context, fileRepository, appScope)
     val downloader = Downloader(context, cookieJar, userAgent)
     val fileCache = FileCache(context, coreClient, fileRepository)
+    val updater = AppUpdater(context, coreClient)
     val pdfLoader: PdfLoader = SandboxedPdfLoader(context)
 
     init {

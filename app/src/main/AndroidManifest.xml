@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- In-app updates from GitHub releases. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Unlocking the app lock with a fingerprint or face. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
@@ -48,6 +50,10 @@
             android:name=".data.upload.UploadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name=".data.update.InstallStatusReceiver"
+            android:exported="false" />
 
         <!-- Hands cached copies of cloud files to other apps for "Open with",
              and holds text shared into the app until it is uploaded. -->

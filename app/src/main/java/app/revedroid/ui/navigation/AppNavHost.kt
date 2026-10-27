@@ -51,6 +51,8 @@ import app.revedroid.ui.login.LoginViewModel
 import app.revedroid.ui.share.SaveToScreen
 import app.revedroid.ui.shares.SharesScreen
 import app.revedroid.ui.shares.SharesViewModel
+import app.revedroid.ui.update.UpdateDialog
+import app.revedroid.ui.update.UpdateViewModel
 import app.revedroid.ui.viewer.ViewerScreen
 import app.revedroid.ui.viewer.ViewerViewModel
 import kotlinx.serialization.Serializable
@@ -247,6 +249,10 @@ private fun HomeScreen(
     val sharesVm = viewModel { SharesViewModel(container) }
     val trashVm = viewModel(key = "files-trash") { FilesViewModel(container, CloudUris.TRASH_ROOT) }
     val accountVm = viewModel { AccountViewModel(container) }
+    val updateVm = viewModel { UpdateViewModel(container) }
+    val update by updateVm.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(updateVm) { updateVm.checkAutomatically() }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -293,6 +299,7 @@ private fun HomeScreen(
             HomeTab.Settings -> {
                 AccountScreen(
                     viewModel = accountVm,
+                    updates = updateVm,
                     refreshSignal = refreshSignal,
                     onSignedOut = onSignedOut,
                     onSwitchServer = onSwitchServer,
@@ -302,5 +309,9 @@ private fun HomeScreen(
                 )
             }
         }
+    }
+
+    update.available?.let {
+        UpdateDialog(it, update.downloading, onInstall = updateVm::install, onDismiss = updateVm::dismiss)
     }
 }

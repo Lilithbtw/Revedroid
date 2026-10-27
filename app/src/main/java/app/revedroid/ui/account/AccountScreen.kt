@@ -35,10 +35,13 @@ import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -98,6 +101,7 @@ import app.revedroid.ui.files.label
 import app.revedroid.ui.lock.CheckPasscodeDialog
 import app.revedroid.ui.lock.CreatePasscodeDialog
 import app.revedroid.ui.lock.canUseBiometrics
+import app.revedroid.ui.update.UpdateViewModel
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.CancellationException
@@ -183,6 +187,8 @@ class AccountViewModel(
 
     fun setShareExpiry(expiry: ShareExpiry) = viewModelScope.launch { container.store.setShareExpiry(expiry) }
 
+    fun setCheckUpdates(enabled: Boolean) = viewModelScope.launch { container.store.setCheckUpdates(enabled) }
+
     fun clearCache() {
         viewModelScope.launch {
             container.fileCache.clear()
@@ -257,6 +263,7 @@ private sealed interface SettingsDialog {
 @Composable
 fun AccountScreen(
     viewModel: AccountViewModel,
+    updates: UpdateViewModel,
     refreshSignal: Long,
     onSignedOut: (anotherAccount: Boolean) -> Unit,
     onSwitchServer: () -> Unit,
@@ -268,6 +275,7 @@ fun AccountScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val active by viewModel.activeAccount.collectAsStateWithLifecycle()
+    val updateState by updates.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var dialog by remember { mutableStateOf<SettingsDialog?>(null) }
@@ -275,6 +283,7 @@ fun AccountScreen(
 
     LaunchedEffect(refreshSignal) { viewModel.refresh() }
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(updates) { updates.messages.collect { snackbar.showSnackbar(it) } }
 
     Scaffold(
         modifier = modifier,
@@ -463,10 +472,28 @@ fun AccountScreen(
             }
 
             Section(stringResource(R.string.settings_updates)) {
-                SettingRow(
-                    icon = Icons.Rounded.Info,
-                    title = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
-                )
+                if (updates.supported) {
+                    SettingSwitch(
+                        icon = Icons.Rounded.Sync,
+                        title = stringResource(R.string.settings_auto_update),
+                        body = stringResource(R.string.settings_auto_update_body),
+                        checked = settings.checkUpdates,
+                        onCheckedChange = viewModel::setCheckUpdates,
+                    )
+                    SettingRow(
+                        icon = Icons.Rounded.SystemUpdate,
+                        title = stringResource(R.string.settings_check_now),
+                        body = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                        onClick = updates::checkNow,
+                        trailing = { if (updateState.checking) CircularProgressIndicator(Modifier.size(24.dp)) },
+                    )
+                } else {
+                    SettingRow(
+                        icon = Icons.Rounded.Info,
+                        title = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                        body = stringResource(R.string.settings_updates_debug),
+                    )
+                }
                 SettingRow(
                     icon = Icons.Rounded.Code,
                     title = stringResource(R.string.settings_source),

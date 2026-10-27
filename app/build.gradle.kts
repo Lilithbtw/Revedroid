@@ -46,6 +46,11 @@ val appVersionCode: Int =
         .let { (major, minor, patch) -> major * 1_000_000 + minor * 1_000 + patch }
         .coerceAtLeast(2)
 
+// Where the in-app updater looks for new releases; overridable for testing.
+val updateFeed: String =
+    providers.gradleProperty("revedroidUpdateFeed").orNull
+        ?: "https://api.github.com/repos/Lilithbtw/Revedroid/releases/latest"
+
 android {
     namespace = "app.revedroid"
     compileSdk {
@@ -58,6 +63,7 @@ android {
         targetSdk = 35
         versionCode = appVersionCode
         versionName = appVersion
+        buildConfigField("String", "UPDATE_FEED", "\"$updateFeed\"")
     }
 
     signingConfigs {

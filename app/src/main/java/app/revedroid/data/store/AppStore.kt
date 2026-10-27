@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.revedroid.data.api.CloudreveJson
@@ -61,6 +62,7 @@ data class AppSettings(
     val lockTimeout: LockTimeout = LockTimeout.Immediately,
     val hideContent: Boolean = false,
     val shareExpiry: ShareExpiry = ShareExpiry.Never,
+    val checkUpdates: Boolean = true,
 )
 
 class AppStore(
@@ -81,6 +83,7 @@ class AppStore(
                 lockTimeout = prefs[LOCK_TIMEOUT].toEnum(LockTimeout.Immediately),
                 hideContent = prefs[HIDE_CONTENT] ?: false,
                 shareExpiry = prefs[SHARE_EXPIRY].toEnum(ShareExpiry.Never),
+                checkUpdates = prefs[CHECK_UPDATES] ?: true,
             )
         }
 
@@ -137,6 +140,16 @@ class AppStore(
         store.edit { it[SHARE_EXPIRY] = expiry.name }
     }
 
+    suspend fun setCheckUpdates(enabled: Boolean) {
+        store.edit { it[CHECK_UPDATES] = enabled }
+    }
+
+    suspend fun lastUpdateCheck(): Long = store.data.first()[LAST_UPDATE_CHECK] ?: 0L
+
+    suspend fun setLastUpdateCheck(epochMillis: Long) {
+        store.edit { it[LAST_UPDATE_CHECK] = epochMillis }
+    }
+
     suspend fun lastUploadFolder(): String? = store.data.first()[LAST_UPLOAD_FOLDER]
 
     suspend fun setLastUploadFolder(uri: String) {
@@ -180,6 +193,8 @@ class AppStore(
         val LOCK_TIMEOUT = stringPreferencesKey("lock_timeout")
         val HIDE_CONTENT = booleanPreferencesKey("hide_content")
         val SHARE_EXPIRY = stringPreferencesKey("share_expiry")
+        val CHECK_UPDATES = booleanPreferencesKey("check_updates")
+        val LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
         val LAST_UPLOAD_FOLDER = stringPreferencesKey("last_upload_folder")
 
         inline fun <reified T : Enum<T>> String?.toEnum(default: T): T =

@@ -228,8 +228,12 @@
     <string name="settings_clear_cache">Clear cache</string>
     <string name="settings_cache_size">%1$s of opened files and thumbnails</string>
     <string name="settings_cache_measuring">Measuring…</string>
-    <string name="settings_updates">About</string>
+    <string name="settings_updates">Updates and about</string>
+    <string name="settings_auto_update">Check for updates automatically</string>
+    <string name="settings_auto_update_body">Look for a new release on GitHub when the app opens</string>
+    <string name="settings_check_now">Check for updates</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_updates_debug">Debug builds don\'t update themselves. Install a release to get updates.</string>
     <string name="settings_source">Source code</string>
 
     <!-- App lock -->
@@ -245,4 +249,10 @@
     <string name="passcode_mismatch">The passcodes didn\'t match. Try again.</string>
     <string name="passcode_current_title">Enter your current passcode</string>
     <string name="passcode_delete">Delete digit</string>
+
+    <!-- Updates -->
+    <string name="update_title">Revedroid %1$s is available</string>
+    <string name="update_body">The update installs over this version and keeps your sign-in and settings.</string>
+    <string name="update_install">Update</string>
+    <string name="update_later">Later</string>
 </resources>
