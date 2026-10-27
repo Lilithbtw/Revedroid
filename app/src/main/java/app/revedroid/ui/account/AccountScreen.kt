@@ -2,6 +2,7 @@ package app.revedroid.ui.account
 
 import android.content.Intent
 import android.os.Build
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -100,6 +101,7 @@ import app.revedroid.ui.files.formatSize
 import app.revedroid.ui.files.label
 import app.revedroid.ui.lock.CheckPasscodeDialog
 import app.revedroid.ui.lock.CreatePasscodeDialog
+import app.revedroid.ui.lock.authenticateWithBiometrics
 import app.revedroid.ui.lock.canUseBiometrics
 import app.revedroid.ui.update.UpdateViewModel
 import coil3.SingletonImageLoader
@@ -116,6 +118,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.crypto.Cipher
 
 data class AccountUiState(
     val user: User? = null,
@@ -179,7 +182,11 @@ class AccountViewModel(
 
     fun turnOffAppLock() = viewModelScope.launch { container.store.setPasscode(null) }
 
-    fun setBiometricUnlock(enabled: Boolean) = viewModelScope.launch { container.store.setBiometricUnlock(enabled) }
+    fun biometricSetupCipher(): Cipher? = container.appLock.biometricSetupCipher()
+
+    fun enableBiometrics(cipher: Cipher) = viewModelScope.launch { container.appLock.enableBiometrics(cipher) }
+
+    fun disableBiometrics() = viewModelScope.launch { container.appLock.disableBiometrics() }
 
     fun setLockTimeout(timeout: LockTimeout) = viewModelScope.launch { container.store.setLockTimeout(timeout) }
 
@@ -277,9 +284,12 @@ fun AccountScreen(
     val active by viewModel.activeAccount.collectAsStateWithLifecycle()
     val updateState by updates.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val snackbar = remember { SnackbarHostState() }
     var dialog by remember { mutableStateOf<SettingsDialog?>(null) }
     val biometricsAvailable = remember { context.canUseBiometrics() }
+    val biometricPromptTitle = stringResource(R.string.settings_biometric)
+    val biometricPromptCancel = stringResource(R.string.action_cancel)
 
     LaunchedEffect(refreshSignal) { viewModel.refresh() }
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
@@ -389,7 +399,20 @@ fun AccountScreen(
                             title = stringResource(R.string.settings_biometric),
                             body = stringResource(R.string.settings_biometric_body),
                             checked = settings.biometricUnlock,
-                            onCheckedChange = viewModel::setBiometricUnlock,
+                            onCheckedChange = { on ->
+                                if (!on) {
+                                    viewModel.disableBiometrics()
+                                } else {
+                                    viewModel.biometricSetupCipher()?.let { cipher ->
+                                        activity?.authenticateWithBiometrics(
+                                            biometricPromptTitle,
+                                            biometricPromptCancel,
+                                            cipher,
+                                            viewModel::enableBiometrics,
+                                        )
+                                    }
+                                }
+                            },
                         )
                     }
                     SettingChoice(

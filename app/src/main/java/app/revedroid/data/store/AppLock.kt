@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.crypto.Cipher
 
 sealed interface UnlockResult {
     data object Unlocked : UnlockResult
@@ -32,6 +33,7 @@ sealed interface UnlockResult {
 class AppLock(
     private val store: AppStore,
     scope: CoroutineScope,
+    private val biometricKey: BiometricKey = BiometricKey(),
 ) : Application.ActivityLifecycleCallbacks {
     private val _locked = MutableStateFlow<Boolean?>(null)
 
@@ -85,9 +87,37 @@ class AppLock(
         return UnlockResult.Wrong
     }
 
-    fun unlockWithBiometrics() {
+    /**
+     * The cipher the unlock prompt has to unlock, or null when biometric unlock is
+     * off or a newly enrolled biometric invalidated the key; then it's turned off.
+     */
+    suspend fun biometricCipher(): Cipher? {
+        val sealed = store.biometricSecret() ?: return null
+        return biometricKey.decrypter(sealed) ?: run {
+            disableBiometrics()
+            null
+        }
+    }
+
+    /** Unlocks if [cipher], back from a successful prompt, opens the stored secret. */
+    suspend fun unlockWithBiometrics(cipher: Cipher) {
+        val sealed = store.biometricSecret() ?: return
+        if (!biometricKey.open(cipher, sealed)) return
         failures = 0
         _locked.value = false
+    }
+
+    /** The cipher the prompt that turns biometric unlock on has to unlock; null if no key can be made. */
+    fun biometricSetupCipher(): Cipher? = biometricKey.encrypter()
+
+    /** Turns biometric unlock on with a [biometricSetupCipher] the prompt has unlocked. */
+    suspend fun enableBiometrics(cipher: Cipher) {
+        biometricKey.seal(cipher)?.let { store.setBiometricSecret(it) }
+    }
+
+    suspend fun disableBiometrics() {
+        store.setBiometricSecret(null)
+        biometricKey.delete()
     }
 
     override fun onActivityStarted(activity: Activity) {

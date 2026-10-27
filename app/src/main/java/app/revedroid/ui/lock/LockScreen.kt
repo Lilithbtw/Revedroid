@@ -69,10 +69,19 @@ fun LockScreen(
     var wrong by remember { mutableStateOf(false) }
     var retryAt by remember { mutableLongStateOf(0L) }
     var secondsLeft by remember { mutableLongStateOf(0L) }
+    var biometricsReset by remember { mutableStateOf(false) }
     val biometrics = biometricUnlock && remember { context.canUseBiometrics() }
     val promptTitle = stringResource(R.string.lock_biometric_title)
     val promptCancel = stringResource(R.string.lock_use_passcode)
-    val askBiometrics = { activity?.authenticateWithBiometrics(promptTitle, promptCancel, lock::unlockWithBiometrics) }
+
+    suspend fun askBiometrics() {
+        val cipher = lock.biometricCipher()
+        if (cipher == null) {
+            biometricsReset = true
+            return
+        }
+        activity?.authenticateWithBiometrics(promptTitle, promptCancel, cipher) { scope.launch { lock.unlockWithBiometrics(it) } }
+    }
 
     BackHandler(onBack = onLeave)
     LaunchedEffect(biometrics) { if (biometrics) askBiometrics() }
@@ -111,6 +120,7 @@ fun LockScreen(
                 when {
                     secondsLeft > 0 -> stringResource(R.string.lock_wait, secondsLeft)
                     wrong -> stringResource(R.string.lock_wrong)
+                    biometricsReset -> stringResource(R.string.lock_biometric_reset)
                     else -> null
                 },
             entered = entered.length,
@@ -125,7 +135,7 @@ fun LockScreen(
             extraKey =
                 if (biometrics) {
                     {
-                        IconButton(onClick = { askBiometrics() }, modifier = Modifier.size(KEY_SIZE)) {
+                        IconButton(onClick = { scope.launch { askBiometrics() } }, modifier = Modifier.size(KEY_SIZE)) {
                             Icon(Icons.Rounded.Fingerprint, contentDescription = stringResource(R.string.lock_biometric_title))
                         }
                     }

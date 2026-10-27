@@ -243,6 +243,7 @@
     <string name="lock_wait_later">Too many attempts. Try again later.</string>
     <string name="lock_biometric_title">Unlock Revedroid</string>
     <string name="lock_use_passcode">Use passcode</string>
+    <string name="lock_biometric_reset">Biometrics changed, so biometric unlock is off</string>
     <string name="passcode_create_title">Choose a passcode</string>
     <string name="passcode_create_hint">Use 4 to 8 digits</string>
     <string name="passcode_confirm_title">Enter it again</string>

@@ -79,7 +79,7 @@ class AppStore(
                 viewMode = prefs[VIEW_MODE].toEnum(FileViewMode.List),
                 appLock = prefs[PASSCODE] != null,
                 passcodeLength = prefs[PASSCODE_LENGTH] ?: 0,
-                biometricUnlock = prefs[BIOMETRIC] ?: false,
+                biometricUnlock = prefs[BIOMETRIC_SECRET] != null,
                 lockTimeout = prefs[LOCK_TIMEOUT].toEnum(LockTimeout.Immediately),
                 hideContent = prefs[HIDE_CONTENT] ?: false,
                 shareExpiry = prefs[SHARE_EXPIRY].toEnum(ShareExpiry.Never),
@@ -116,7 +116,7 @@ class AppStore(
             if (hash == null) {
                 prefs.remove(PASSCODE)
                 prefs.remove(PASSCODE_LENGTH)
-                prefs.remove(BIOMETRIC)
+                prefs.remove(BIOMETRIC_SECRET)
             } else {
                 prefs[PASSCODE] = hash
                 prefs[PASSCODE_LENGTH] = length
@@ -124,8 +124,13 @@ class AppStore(
         }
     }
 
-    suspend fun setBiometricUnlock(enabled: Boolean) {
-        store.edit { it[BIOMETRIC] = enabled }
+    suspend fun biometricSecret(): String? = store.data.first()[BIOMETRIC_SECRET]
+
+    /** Stores the secret sealed by [BiometricKey], or turns biometric unlock off when null. */
+    suspend fun setBiometricSecret(sealed: String?) {
+        store.edit { prefs ->
+            if (sealed == null) prefs.remove(BIOMETRIC_SECRET) else prefs[BIOMETRIC_SECRET] = sealed
+        }
     }
 
     suspend fun setLockTimeout(timeout: LockTimeout) {
@@ -189,7 +194,7 @@ class AppStore(
         val VIEW_MODE = stringPreferencesKey("view_mode")
         val PASSCODE = stringPreferencesKey("passcode")
         val PASSCODE_LENGTH = intPreferencesKey("passcode_length")
-        val BIOMETRIC = booleanPreferencesKey("biometric_unlock")
+        val BIOMETRIC_SECRET = stringPreferencesKey("biometric_secret")
         val LOCK_TIMEOUT = stringPreferencesKey("lock_timeout")
         val HIDE_CONTENT = booleanPreferencesKey("hide_content")
         val SHARE_EXPIRY = stringPreferencesKey("share_expiry")
