@@ -112,6 +112,19 @@ interface CloudreveApi {
         @Body body: ShareCreateRequest,
     ): ApiEnvelope
 
+    @GET("share")
+    suspend fun listShares(
+        @Query("page_size") pageSize: Int,
+        @Query("order_by") orderBy: String? = null,
+        @Query("order_direction") orderDirection: String? = null,
+        @Query("next_page_token") nextPageToken: String? = null,
+    ): ApiEnvelope
+
+    @HTTP(method = "DELETE", path = "share/{id}")
+    suspend fun deleteShare(
+        @Path("id") id: String,
+    ): ApiEnvelope
+
     @PUT("file/upload")
     suspend fun createUploadSession(
         @Body body: UploadSessionRequest,

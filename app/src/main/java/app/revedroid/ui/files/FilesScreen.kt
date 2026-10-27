@@ -1,6 +1,5 @@
 package app.revedroid.ui.files
 
-import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -152,6 +151,10 @@ private sealed interface FilesDialog {
         val files: List<CloudFile>,
     ) : FilesDialog
 
+    data class Share(
+        val file: CloudFile,
+    ) : FilesDialog
+
     data object EmptyTrash : FilesDialog
 }
 
@@ -191,13 +194,7 @@ fun FilesScreen(
                 }
 
                 is FilesEvent.ShareLink -> {
-                    val send =
-                        Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, event.name)
-                            putExtra(Intent.EXTRA_TEXT, event.url)
-                        }
-                    context.startActivity(Intent.createChooser(send, event.name))
+                    context.sendLink(event.url, event.name)
                 }
 
                 is FilesEvent.OpenWith -> {
@@ -388,7 +385,7 @@ fun FilesScreen(
                     FileAction.Preview -> onPreview(file)
                     FileAction.OpenWith -> viewModel.openWith(file)
                     FileAction.Download -> viewModel.download(listOf(file))
-                    FileAction.Share -> viewModel.share(file)
+                    FileAction.Share -> dialog = FilesDialog.Share(file)
                     FileAction.Move -> dialog = FilesDialog.Move(listOf(file))
                     FileAction.Select -> viewModel.toggleSelection(file)
                     FileAction.Rename -> dialog = FilesDialog.Rename(file)
@@ -495,6 +492,19 @@ fun FilesScreen(
                     },
                 )
             }
+        }
+
+        is FilesDialog.Share -> {
+            val defaultExpiry by viewModel.shareExpiry.collectAsStateWithLifecycle()
+            ShareLinkDialog(
+                file = d.file,
+                initialExpiry = defaultExpiry,
+                onCreate = { expiry, protected ->
+                    dialog = null
+                    viewModel.share(d.file, expiry, protected)
+                },
+                onDismiss = { dialog = null },
+            )
         }
 
         FilesDialog.EmptyTrash -> {

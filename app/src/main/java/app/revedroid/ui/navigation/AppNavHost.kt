@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -48,6 +49,8 @@ import app.revedroid.ui.files.FilesViewModel
 import app.revedroid.ui.login.LoginScreen
 import app.revedroid.ui.login.LoginViewModel
 import app.revedroid.ui.share.SaveToScreen
+import app.revedroid.ui.shares.SharesScreen
+import app.revedroid.ui.shares.SharesViewModel
 import app.revedroid.ui.viewer.ViewerScreen
 import app.revedroid.ui.viewer.ViewerViewModel
 import kotlinx.serialization.Serializable
@@ -207,6 +210,7 @@ private enum class HomeTab(
     val icon: ImageVector,
 ) {
     Files(R.string.nav_files, Icons.Rounded.Folder),
+    Shares(R.string.nav_shares, Icons.Rounded.Link),
     Trash(R.string.nav_trash, Icons.Rounded.Delete),
     Account(R.string.nav_account, Icons.Rounded.AccountCircle),
 }
@@ -221,6 +225,7 @@ private fun HomeScreen(
     val container = LocalContext.current.container
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val filesVm = viewModel(key = "files-my") { FilesViewModel(container, CloudUris.MY_ROOT) }
+    val sharesVm = viewModel { SharesViewModel(container) }
     val trashVm = viewModel(key = "files-trash") { FilesViewModel(container, CloudUris.TRASH_ROOT) }
     val accountVm = viewModel { AccountViewModel(container) }
 
@@ -232,8 +237,14 @@ private fun HomeScreen(
                     NavigationBarItem(
                         selected = tab == index,
                         onClick = {
-                            // Re-entering Trash should show what was just deleted.
-                            if (item == HomeTab.Trash && tab != index) trashVm.refresh()
+                            // Re-entering Trash or Shares should show what changed elsewhere.
+                            if (tab != index) {
+                                when (item) {
+                                    HomeTab.Trash -> trashVm.refresh()
+                                    HomeTab.Shares -> sharesVm.refresh()
+                                    else -> Unit
+                                }
+                            }
                             tab = index
                         },
                         icon = { Icon(item.icon, contentDescription = null) },
@@ -249,6 +260,7 @@ private fun HomeScreen(
                 .padding(padding)
         when (HomeTab.entries[tab]) {
             HomeTab.Files -> FilesScreen(filesVm, refreshSignal, onPreview, modifier)
+            HomeTab.Shares -> SharesScreen(sharesVm, refreshSignal, modifier)
             HomeTab.Trash -> FilesScreen(trashVm, refreshSignal, onPreview, modifier)
             HomeTab.Account -> AccountScreen(accountVm, refreshSignal, onSignedOut, onSwitchServer, modifier)
         }

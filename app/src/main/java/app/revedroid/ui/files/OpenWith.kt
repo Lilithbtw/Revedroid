@@ -79,6 +79,20 @@ fun Context.openWith(
     startActivity(Intent.createChooser(view, getString(R.string.files_open_with)))
 }
 
+/** Hands a share link to the system share sheet. */
+fun Context.sendLink(
+    url: String,
+    name: String,
+) {
+    val send =
+        Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, name)
+            putExtra(Intent.EXTRA_TEXT, url)
+        }
+    startActivity(Intent.createChooser(send, name))
+}
+
 @Composable
 fun FetchDialog(
     task: FetchTask,

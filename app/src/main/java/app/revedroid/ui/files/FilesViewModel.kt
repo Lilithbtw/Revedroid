@@ -8,6 +8,7 @@ import app.revedroid.data.api.CloudFile
 import app.revedroid.data.api.ListResponse
 import app.revedroid.data.api.StoragePolicy
 import app.revedroid.data.repo.CloudUris
+import app.revedroid.data.repo.ShareExpiry
 import app.revedroid.data.store.FileViewMode
 import app.revedroid.data.upload.UploadsState
 import app.revedroid.ui.components.userMessage
@@ -87,6 +88,11 @@ class FilesViewModel(
         container.store.settings
             .map { it.viewMode }
             .stateIn(viewModelScope, SharingStarted.Eagerly, FileViewMode.List)
+
+    val shareExpiry: StateFlow<ShareExpiry> =
+        container.store.settings
+            .map { it.shareExpiry }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ShareExpiry.Never)
 
     /** Uploads run app-wide, so every folder sees the same list. */
     val uploads: StateFlow<UploadsState> = container.uploads.state
@@ -316,10 +322,13 @@ class FilesViewModel(
         fetchJob?.cancel()
     }
 
-    fun share(file: CloudFile) =
-        act {
-            _events.send(FilesEvent.ShareLink(repo.createShareLink(file), file.name))
-        }
+    fun share(
+        file: CloudFile,
+        expiry: ShareExpiry,
+        protected: Boolean,
+    ) = act {
+        _events.send(FilesEvent.ShareLink(container.shareRepository.create(file, expiry, protected), file.name))
+    }
 
     fun upload(sources: List<Uri>) {
         val s = _state.value

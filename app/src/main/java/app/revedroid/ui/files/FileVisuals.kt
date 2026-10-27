@@ -89,7 +89,8 @@ private fun kindColors(file: CloudFile): Pair<Color, Color> {
 }
 
 /**
- * Server thumbnail when one exists, otherwise a tinted type icon.
+ * Server thumbnail when one exists, otherwise a tinted type icon. Pass
+ * [thumbnail] = false for stand-ins that aren't real files, such as share links.
  * (Android lint misreads the `value =` assignment inside `produceState` under K2.)
  */
 @SuppressLint("ProduceStateDoesNotAssignValue")
@@ -99,9 +100,10 @@ fun FileThumbnail(
     modifier: Modifier = Modifier,
     iconSize: Dp,
     cornerRadius: Dp,
+    thumbnail: Boolean = true,
 ) {
     val repo = LocalContext.current.container.fileRepository
-    val url by produceState<String?>(null, file.id, file.updatedAt) { value = repo.thumbnailUrl(file) }
+    val url by produceState<String?>(null, file.id, file.updatedAt) { if (thumbnail) value = repo.thumbnailUrl(file) }
     val (container, content) = kindColors(file)
     val shape = RoundedCornerShape(cornerRadius)
     Box(

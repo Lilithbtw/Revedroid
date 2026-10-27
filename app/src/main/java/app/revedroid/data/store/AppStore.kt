@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import app.revedroid.data.api.CloudreveJson
 import app.revedroid.data.api.Token
 import app.revedroid.data.api.User
+import app.revedroid.data.repo.ShareExpiry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -35,6 +36,7 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.System,
     val dynamicColor: Boolean = true,
     val viewMode: FileViewMode = FileViewMode.List,
+    val shareExpiry: ShareExpiry = ShareExpiry.Never,
 )
 
 class AppStore(
@@ -46,9 +48,10 @@ class AppStore(
     val settings: Flow<AppSettings> =
         store.data.map { prefs ->
             AppSettings(
-                themeMode = prefs[THEME]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.System,
+                themeMode = prefs[THEME].toEnum(ThemeMode.System),
                 dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
-                viewMode = prefs[VIEW_MODE]?.let { runCatching { FileViewMode.valueOf(it) }.getOrNull() } ?: FileViewMode.List,
+                viewMode = prefs[VIEW_MODE].toEnum(FileViewMode.List),
+                shareExpiry = prefs[SHARE_EXPIRY].toEnum(ShareExpiry.Never),
             )
         }
 
@@ -86,6 +89,10 @@ class AppStore(
         }
     }
 
+    suspend fun setShareExpiry(expiry: ShareExpiry) {
+        store.edit { it[SHARE_EXPIRY] = expiry.name }
+    }
+
     suspend fun lastUploadFolder(): String? = store.data.first()[LAST_UPLOAD_FOLDER]
 
     suspend fun setLastUploadFolder(uri: String) {
@@ -98,6 +105,10 @@ class AppStore(
         val THEME = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val VIEW_MODE = stringPreferencesKey("view_mode")
+        val SHARE_EXPIRY = stringPreferencesKey("share_expiry")
         val LAST_UPLOAD_FOLDER = stringPreferencesKey("last_upload_folder")
+
+        inline fun <reified T : Enum<T>> String?.toEnum(default: T): T =
+            this?.let { name -> enumValues<T>().firstOrNull { it.name == name } } ?: default
     }
 }

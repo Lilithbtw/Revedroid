@@ -17,7 +17,6 @@ import app.revedroid.data.api.FileUrlResponse
 import app.revedroid.data.api.ListResponse
 import app.revedroid.data.api.MoveRequest
 import app.revedroid.data.api.RenameRequest
-import app.revedroid.data.api.ShareCreateRequest
 import app.revedroid.data.api.SiteConfig
 import app.revedroid.data.api.StoragePolicy
 import app.revedroid.data.api.ThumbResponse
@@ -193,8 +192,6 @@ class FileRepository(
         val url = response.urls.firstOrNull()?.url ?: throw IOException("The server returned no download link")
         return ServerUrls.resolve(container.requireServer(), url)
     }
-
-    suspend fun createShareLink(file: CloudFile): String = container.authed { createShare(ShareCreateRequest(file.path)).decode() }
 
     /**
      * Uploads [source] into [parent] using the folder's storage [policy].

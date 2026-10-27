@@ -1,7 +1,9 @@
 package app.revedroid.ui.files
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -21,12 +24,14 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DriveFileRenameOutline
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Preview
 import androidx.compose.material.icons.rounded.RestoreFromTrash
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -34,6 +39,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -42,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -59,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.revedroid.R
 import app.revedroid.data.api.CloudFile
+import app.revedroid.data.repo.ShareExpiry
 
 enum class FileAction { Open, Preview, OpenWith, Download, Share, Move, Select, Rename, Delete, Restore, DeleteForever }
 
@@ -217,3 +226,67 @@ fun ConfirmDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
+
+/** Options for a new share link: how long it lasts and whether it needs a password. */
+@Composable
+fun ShareLinkDialog(
+    file: CloudFile,
+    initialExpiry: ShareExpiry,
+    onCreate: (ShareExpiry, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var expiry by rememberSaveable(initialExpiry) { mutableStateOf(initialExpiry) }
+    var protected by rememberSaveable { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.Link, contentDescription = null) },
+        title = { Text(stringResource(R.string.share_dialog_title, file.name), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        text = {
+            Column {
+                Text(stringResource(R.string.share_expiry), style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.size(8.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ShareExpiry.entries.forEach { option ->
+                        FilterChip(
+                            selected = expiry == option,
+                            onClick = { expiry = option },
+                            label = { Text(stringResource(option.label())) },
+                        )
+                    }
+                }
+                Spacer(Modifier.size(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .toggleable(value = protected, role = Role.Switch, onValueChange = { protected = it })
+                            .padding(vertical = 8.dp),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.share_password), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(R.string.share_password_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(checked = protected, onCheckedChange = null)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onCreate(expiry, protected) }) { Text(stringResource(R.string.share_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+fun ShareExpiry.label(): Int =
+    when (this) {
+        ShareExpiry.Never -> R.string.share_expiry_never
+        ShareExpiry.Hour -> R.string.share_expiry_hour
+        ShareExpiry.Day -> R.string.share_expiry_day
+        ShareExpiry.Week -> R.string.share_expiry_week
+        ShareExpiry.Month -> R.string.share_expiry_month
+    }

@@ -11,6 +11,7 @@
     <string name="action_retry">Retry</string>
 
     <string name="nav_files">My files</string>
+    <string name="nav_shares">Shares</string>
     <string name="nav_trash">Trash</string>
     <string name="nav_account">Account</string>
 
@@ -143,6 +144,41 @@
         <item quantity="one">Uploading %d file to Revedroid</item>
         <item quantity="other">Uploading %d files to Revedroid</item>
     </plurals>
+
+    <!-- Share links -->
+    <string name="share_dialog_title">Share \"%1$s\"</string>
+    <string name="share_expiry">Link expires</string>
+    <string name="share_expiry_never">Never</string>
+    <string name="share_expiry_hour">In 1 hour</string>
+    <string name="share_expiry_day">In 1 day</string>
+    <string name="share_expiry_week">In 7 days</string>
+    <string name="share_expiry_month">In 30 days</string>
+    <string name="share_password">Password protect</string>
+    <string name="share_password_body">The password is added to the link you send</string>
+    <string name="share_create">Create link</string>
+    <string name="shares_empty">No share links yet. Create one from a file\'s menu.</string>
+    <string name="shares_expires_on">Expires %1$s</string>
+    <string name="shares_expired_on">Expired %1$s</string>
+    <string name="shares_expired">Expired</string>
+    <string name="shares_never_expires">Never expires</string>
+    <string name="shares_created">Created %1$s</string>
+    <string name="shares_password">Password: %1$s</string>
+    <string name="shares_protected">Password protected</string>
+    <plurals name="shares_views">
+        <item quantity="one">%d view</item>
+        <item quantity="other">%d views</item>
+    </plurals>
+    <plurals name="shares_downloads_left">
+        <item quantity="one">%d download left</item>
+        <item quantity="other">%d downloads left</item>
+    </plurals>
+    <string name="shares_copy">Copy link</string>
+    <string name="shares_copied">Link copied</string>
+    <string name="shares_send">Send link</string>
+    <string name="shares_open">Open in browser</string>
+    <string name="shares_delete">Delete link</string>
+    <string name="shares_delete_title">Delete this link?</string>
+    <string name="shares_delete_body">The link to \"%1$s\" will stop working. The file itself stays where it is.</string>
 
     <!-- Viewer -->
     <string name="viewer_error">Couldn\'t show this file</string>

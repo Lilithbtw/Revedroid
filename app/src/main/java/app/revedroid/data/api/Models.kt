@@ -215,9 +215,42 @@ data class MoveRequest(
     val copy: Boolean = false,
 )
 
+/** [expire] is a lifetime in seconds; leaving it out makes a link that never expires. */
 @Serializable
 data class ShareCreateRequest(
     val uri: String,
+    @SerialName("is_private") val isPrivate: Boolean = false,
+    val expire: Long? = null,
+)
+
+@Serializable
+data class Share(
+    val id: String,
+    val name: String = "",
+    val url: String = "",
+    val visited: Long = 0,
+    val downloaded: Long = 0,
+    @SerialName("remain_downloads") val remainingDownloads: Long? = null,
+    val expires: String? = null,
+    val expired: Boolean = false,
+    @SerialName("source_type") val sourceType: Int = FileType.FILE,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("is_private") val isPrivate: Boolean = false,
+    val password: String? = null,
+) {
+    val expiresAt: Instant? get() = expires?.let(::parseRfc3339)?.takeIf { it != Instant.EPOCH }
+    val createdAtInstant: Instant? get() = createdAt?.let(::parseRfc3339)?.takeIf { it != Instant.EPOCH }
+
+    fun isExpired(now: Instant = Instant.now()): Boolean = expired || expiresAt?.isBefore(now) == true || remainingDownloads == 0L
+
+    /** A stand-in file for the shared item, so share rows can reuse the file icons. */
+    fun asFile(): CloudFile = CloudFile(type = sourceType, id = id, name = name, path = url)
+}
+
+@Serializable
+data class ShareListResponse(
+    val shares: List<Share> = emptyList(),
+    val pagination: Pagination = Pagination(),
 )
 
 @Serializable

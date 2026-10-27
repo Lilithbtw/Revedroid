@@ -26,6 +26,7 @@ import app.revedroid.data.repo.Downloader
 import app.revedroid.data.repo.FileCache
 import app.revedroid.data.repo.FileRepository
 import app.revedroid.data.repo.ServerRepository
+import app.revedroid.data.repo.ShareRepository
 import app.revedroid.data.store.AppStore
 import app.revedroid.data.upload.UploadManager
 import app.revedroid.data.upload.UploadNotifications
@@ -120,6 +121,7 @@ class AppContainer(
     val serverRepository = ServerRepository(coreClient)
     val authRepository = AuthRepository(this)
     val fileRepository = FileRepository(this, context.contentResolver)
+    val shareRepository = ShareRepository(this)
     val uploads = UploadManager(context, fileRepository, appScope)
     val downloader = Downloader(context, cookieJar, userAgent)
     val fileCache = FileCache(context, coreClient, fileRepository)
