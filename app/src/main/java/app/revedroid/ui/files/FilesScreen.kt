@@ -130,6 +130,8 @@ import app.revedroid.R
 import app.revedroid.container
 import app.revedroid.data.api.CloudFile
 import app.revedroid.data.store.FileViewMode
+import app.revedroid.data.upload.UploadTask
+import app.revedroid.ui.components.rememberNotificationPermission
 import app.revedroid.ui.theme.DialogSystemBars
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -163,7 +165,9 @@ fun FilesScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
+    val uploads by viewModel.uploads.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val withNotifications = rememberNotificationPermission()
     val snackbar = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
@@ -175,7 +179,7 @@ fun FilesScreen(
 
     val pickFiles =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-            if (uris.isNotEmpty()) viewModel.upload(uris)
+            if (uris.isNotEmpty()) withNotifications { viewModel.upload(uris) }
         }
 
     LaunchedEffect(refreshSignal) { if (refreshSignal > 0) viewModel.refresh() }
@@ -304,7 +308,7 @@ fun FilesScreen(
                 .padding(padding),
         ) {
             if (!state.atRoot && !state.isSearching) Breadcrumbs(state.crumbs, state.isTrash, onNavigate = viewModel::navigate)
-            UploadsPanel(state.uploads, onDismiss = viewModel::dismissUpload)
+            if (!state.isTrash) UploadsPanel(uploads.tasks, onCancel = viewModel::cancelUpload, onDismiss = viewModel::dismissUpload)
 
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
@@ -679,9 +683,11 @@ internal fun Breadcrumbs(
     }
 }
 
+/** In-app view of the upload queue; the same uploads also show in a notification. */
 @Composable
 private fun UploadsPanel(
     uploads: List<UploadTask>,
+    onCancel: (Long) -> Unit,
     onDismiss: (Long) -> Unit,
 ) {
     AnimatedVisibility(uploads.isNotEmpty()) {
@@ -693,7 +699,18 @@ private fun UploadsPanel(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                uploads.forEach { task ->
+                // Failures and the running upload first; a long queue is summed up.
+                val ordered =
+                    uploads.sortedBy {
+                        if (it.error != null) {
+                            0
+                        } else if (it.running) {
+                            1
+                        } else {
+                            2
+                        }
+                    }
+                ordered.take(MAX_UPLOAD_ROWS).forEach { task ->
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -703,30 +720,53 @@ private fun UploadsPanel(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
-                            if (task.error != null) {
-                                IconButton(onClick = { onDismiss(task.id) }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_dismiss))
-                                }
-                            } else {
-                                Text("${(task.fraction * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
+                            if (task.error == null) {
+                                Text(
+                                    if (task.running) "${(task.fraction * 100).toInt()}%" else stringResource(R.string.upload_waiting),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                            IconButton(
+                                onClick = { if (task.error != null) onDismiss(task.id) else onCancel(task.id) },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Close,
+                                    contentDescription =
+                                        stringResource(if (task.error != null) R.string.action_dismiss else R.string.action_cancel),
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
                         }
-                        if (task.error != null) {
-                            Text(task.error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                        } else {
-                            Spacer(Modifier.height(4.dp))
-                            if (task.total > 0) {
+                        when {
+                            task.error != null -> {
+                                Text(task.error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            }
+
+                            task.running && task.total > 0 -> {
                                 LinearProgressIndicator(progress = { task.fraction }, modifier = Modifier.fillMaxWidth())
-                            } else {
+                            }
+
+                            task.running -> {
                                 LinearProgressIndicator(Modifier.fillMaxWidth())
                             }
                         }
                     }
                 }
+                if (ordered.size > MAX_UPLOAD_ROWS) {
+                    val more = ordered.size - MAX_UPLOAD_ROWS
+                    Text(
+                        pluralStringResource(R.plurals.upload_more_waiting, more, more),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
             }
         }
     }
 }
+
+private const val MAX_UPLOAD_ROWS = 3
 
 /** Replaces the top bar while files are selected. */
 @OptIn(ExperimentalMaterial3Api::class)

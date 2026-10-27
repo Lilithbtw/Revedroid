@@ -109,6 +109,25 @@
     <string name="picker_no_folders">No folders here. You can still choose this folder or create a new one.</string>
     <string name="picker_back_to_root">Go to My files</string>
 
+    <!-- Uploads -->
+    <string name="notification_channel_uploads">Uploads</string>
+    <string name="upload_waiting">Waiting</string>
+    <string name="upload_notification_title">Uploading %1$d of %2$d</string>
+    <string name="upload_notification_preparing">Preparing upload…</string>
+    <string name="upload_notification_bytes">%1$s of %2$s</string>
+    <plurals name="upload_done">
+        <item quantity="one">%d file uploaded</item>
+        <item quantity="other">%d files uploaded</item>
+    </plurals>
+    <plurals name="upload_failed">
+        <item quantity="one">%d upload failed</item>
+        <item quantity="other">%d uploads failed</item>
+    </plurals>
+    <plurals name="upload_more_waiting">
+        <item quantity="one">%d more waiting</item>
+        <item quantity="other">%d more waiting</item>
+    </plurals>
+
     <!-- Viewer -->
     <string name="viewer_error">Couldn\'t show this file</string>
 

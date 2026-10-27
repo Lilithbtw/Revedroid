@@ -29,6 +29,7 @@ import app.revedroid.data.api.ensureOk
 import app.revedroid.data.net.ServerUrls
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -232,8 +233,11 @@ class FileRepository(
                 val input = resolver.openInputStream(source) ?: throw IOException("Can't read ${meta.name}")
                 input.use { sendChunks(it, meta.size, credential, mode, onProgress) }
             } catch (e: Throwable) {
-                runCatching {
-                    container.api().deleteUploadSession(DeleteUploadSessionRequest(credential.sessionId, credential.uri ?: target))
+                // Also runs when the upload was cancelled, so the server can drop the partial file.
+                withContext(NonCancellable) {
+                    runCatching {
+                        container.api().deleteUploadSession(DeleteUploadSessionRequest(credential.sessionId, credential.uri ?: target))
+                    }
                 }
                 throw e
             }

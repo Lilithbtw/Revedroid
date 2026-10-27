@@ -9,6 +9,7 @@ import app.revedroid.data.api.ListResponse
 import app.revedroid.data.api.StoragePolicy
 import app.revedroid.data.repo.CloudUris
 import app.revedroid.data.store.FileViewMode
+import app.revedroid.data.upload.UploadsState
 import app.revedroid.ui.components.userMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicLong
 
 enum class SortField(
     val apiName: String,
@@ -31,16 +31,6 @@ enum class SortField(
     Size("size"),
     Updated("updated_at"),
     Created("created_at"),
-}
-
-data class UploadTask(
-    val id: Long,
-    val name: String,
-    val sent: Long = 0,
-    val total: Long = 0,
-    val error: String? = null,
-) {
-    val fraction: Float get() = if (total <= 0) 0f else (sent.toFloat() / total).coerceIn(0f, 1f)
 }
 
 data class FilesUiState(
@@ -56,7 +46,6 @@ data class FilesUiState(
     val ascending: Boolean = true,
     val searchQuery: String? = null,
     val policy: StoragePolicy? = null,
-    val uploads: List<UploadTask> = emptyList(),
     val fetching: FetchTask? = null,
     /** Ids of the files picked for a batch action; empty when not selecting. */
     val selected: Set<String> = emptySet(),
@@ -99,6 +88,9 @@ class FilesViewModel(
             .map { it.viewMode }
             .stateIn(viewModelScope, SharingStarted.Eagerly, FileViewMode.List)
 
+    /** Uploads run app-wide, so every folder sees the same list. */
+    val uploads: StateFlow<UploadsState> = container.uploads.state
+
     private val _events = Channel<FilesEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
@@ -108,18 +100,17 @@ class FilesViewModel(
     private var nextPage: Int? = null
     private var listedUri: String = root
 
-    private val uploadQueue = Channel<Pair<String, Uri>>(Channel.UNLIMITED)
-    private val uploadIds = AtomicLong()
-
     init {
         load()
-        viewModelScope.launch { for ((parent, source) in uploadQueue) runUpload(parent, source) }
+        viewModelScope.launch {
+            container.uploads.finished.collect { parent -> if (parent == _state.value.uri && !_state.value.isSearching) load() }
+        }
     }
 
     fun open(folder: CloudFile) = navigate(folder.path)
 
     fun navigate(uri: String) {
-        _state.update { it.copy(uri = uri, searchQuery = null, files = emptyList(), loading = true, selected = emptySet()) }
+        _state.update { it.copy(uri = uri, searchQuery = null, files = emptyList(), loading = true, selected = emptySet(), policy = null) }
         load()
     }
 
@@ -331,35 +322,13 @@ class FilesViewModel(
         }
 
     fun upload(sources: List<Uri>) {
-        val parent = _state.value.uri
-        sources.forEach { uploadQueue.trySend(parent to it) }
+        val s = _state.value
+        container.uploads.enqueue(s.uri, sources, s.policy)
     }
 
-    fun dismissUpload(id: Long) = _state.update { s -> s.copy(uploads = s.uploads.filterNot { it.id == id }) }
+    fun cancelUpload(id: Long) = container.uploads.cancel(id)
 
-    private suspend fun runUpload(
-        parent: String,
-        source: Uri,
-    ) {
-        val id = uploadIds.incrementAndGet()
-        val name = repo.displayName(source)
-        _state.update { it.copy(uploads = it.uploads + UploadTask(id, name)) }
-
-        fun patch(f: (UploadTask) -> UploadTask) = _state.update { s -> s.copy(uploads = s.uploads.map { if (it.id == id) f(it) else it }) }
-        try {
-            val policy =
-                _state.value.policy?.takeIf { parent == _state.value.uri }
-                    ?: repo.list(parent).storagePolicy
-                    ?: error("This folder doesn't accept uploads")
-            repo.upload(parent, source, policy) { p -> patch { it.copy(sent = p.sent, total = p.total) } }
-            _state.update { s -> s.copy(uploads = s.uploads.filterNot { it.id == id }) }
-            if (_state.value.uri == parent) load()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            patch { it.copy(error = e.userMessage()) }
-        }
-    }
+    fun dismissUpload(id: Long) = container.uploads.dismiss(id)
 
     private fun removeLocally(files: List<CloudFile>) {
         val ids = files.mapTo(HashSet(), CloudFile::id)
