@@ -122,7 +122,8 @@ data class CloudFile(
     @SerialName("updated_at") val updatedAt: String? = null,
     val size: Long = 0,
     val metadata: Map<String, String>? = null,
-    val path: String,
+    // The trash listing's `parent` comes without a path.
+    val path: String = "",
     val shared: Boolean = false,
     val owned: Boolean = true,
 ) {
