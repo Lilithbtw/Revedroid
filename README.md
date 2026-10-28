@@ -4,6 +4,11 @@
 
 # Revedroid
 
+[![CI](https://github.com/Lilithbtw/Revedroid/actions/workflows/ci.yml/badge.svg)](https://github.com/Lilithbtw/Revedroid/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/Lilithbtw/Revedroid?filter=!*-fdroid)](https://github.com/Lilithbtw/Revedroid/releases/latest)
+[![License: AGPL v3+](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
+![Android 10+](https://img.shields.io/badge/Android-10%2B-3DDC84.svg)
+
 Revedroid is an Android client for [Cloudreve](https://cloudreve.org) v4, built with Kotlin, Jetpack Compose and Material 3. It lets you sign in to your Cloudreve server from your phone and manage your files: browse folders, upload and download, share links, and empty the trash.
 
 ## Screenshots
@@ -97,7 +102,7 @@ The APK is written to `app/build/outputs/apk/github/debug/app-github-debug.apk`.
 
 The version name comes from the newest `v*` tag in your checkout. Pass `-PrevedroidVersion=1.2.3` to set it yourself.
 
-To run the unit tests (URL handling, ping, Cloudflare detection, version comparison, passcode hashing, and parsing of share and trash listings):
+To run the unit tests (URL handling, ping, Cloudflare detection, version comparison, passcode hashing, request building, and parsing of share and trash listings):
 
 ```sh
 ./gradlew :app:testGithubDebugUnitTest
@@ -145,7 +150,7 @@ Kotlin is checked with [ktlint](https://github.com/pinterest/ktlint), using the 
 |---|---|---|
 | `ci.yml` | pushes to `main`, pull requests | ktlint, Android lint (results go to code scanning), unit tests, and a debug APK artifact. A separate job builds the unsigned F-Droid release APK, and fails if it depends on Google Play services or Firebase or can install apps |
 | `codeql.yml` | pushes to `main`, pull requests, weekly | CodeQL `security-extended` analysis of the Kotlin code |
-| `release.yml` | code pushes to `main`, tags matching `v*` | Creates the next patch tag, builds the signed GitHub and F-Droid APKs with that version, and publishes them as two GitHub releases, `vX.Y.Z` and `vX.Y.Z-fdroid` |
+| `release.yml` | CI passing on a push to `main` that changes more than Markdown, tags matching `v*` | Creates the next patch tag, builds the signed GitHub and F-Droid APKs with that version, checks the F-Droid APK again, and publishes them as two GitHub releases, `vX.Y.Z` and `vX.Y.Z-fdroid` |
 | `dependabot-auto-merge.yml` | Dependabot pull requests | Enables auto-merge for patch and minor updates |
 
 Dependabot checks Gradle dependencies, including `gradle/libs.versions.toml`, and GitHub Actions each week. Related libraries are grouped, so Kotlin and its compiler plugins update together.
@@ -174,10 +179,19 @@ ui/files     File browser, selection bar, folder picker, sheets, and dialogs
 ui/shares    Share link list
 ui/share     "Save to" screen for files shared from other apps
 ui/lock      Passcode screen and biometrics
+ui/viewer    In-app viewer for photos, videos, audio, and PDFs
 ui/account   Settings: profile, storage, accounts, security, appearance, updates
+ui/update    Update prompt and download progress
+ui/navigation  Navigation graph
+ui/components  Shared error and permission helpers
+ui/theme     Material 3 theme and dynamic color
 ```
 
 The launcher icon's editable SVG sources and a 512 px PNG for app stores are in `docs/icon`.
+
+## Contributing
+
+Bug reports and pull requests are welcome on [GitHub](https://github.com/Lilithbtw/Revedroid/issues). Before opening a pull request, run `./gradlew ktlintCheck :app:testGithubDebugUnitTest`; CI runs the same checks, plus Android lint and the F-Droid build. If you report a connection problem, say which Cloudreve version you run and whether the server is behind Cloudflare.
 
 ## License
 
