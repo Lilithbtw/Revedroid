@@ -1,14 +1,17 @@
 name: Release
 
-# Every push to main that changes something other than Markdown creates the next
-# patch tag (v0.1.0, v0.1.1, ...) and a GitHub release with a signed APK. The F-Droid
-# build, which leaves out the in-app updater, gets its own release under a matching
-# -fdroid tag (v0.1.1-fdroid).
+# Every push to main that passes CI and changes something other than Markdown creates
+# the next patch tag (v0.1.0, v0.1.1, ...) and a GitHub release with a signed APK. The
+# F-Droid build, which leaves out the in-app updater, gets its own release under a
+# matching -fdroid tag (v0.1.1-fdroid).
 # Pushing a tag like v0.2.0 by hand also builds and publishes that tag.
 on:
-  push:
+  # Waits for CI, so a commit that fails lint or tests never reaches the in-app updater.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths-ignore: ["**/*.md"]
+  push:
     tags: ["v*", "!v*-fdroid"]
 
 permissions:
@@ -21,13 +24,20 @@ concurrency:
 jobs:
   tag:
     name: Create the next version tag
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Only CI runs for pushes to this repository's main, never for pull requests.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.next.outputs.tag }}
     steps:
+      # The commit CI tested, not whatever main points to by now.
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
       - name: Work out the next patch version
         id: next
@@ -36,12 +46,17 @@ jobs:
           latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v -- '-fdroid$' | head -n 1)
           if [ -z "$latest" ]; then
             tag=v0.1.0
+          # Nothing but Markdown changed since the last release (or it's already tagged).
+          elif git diff --quiet "$latest" HEAD -- . ':!*.md'; then
+            echo "No changes to release since $latest"
+            exit 0
           else
             IFS=. read -r major minor patch <<< "${latest#v}"
             tag=v$major.$minor.$((patch + 1))
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Push the tag
+        if: steps.next.outputs.tag != ''
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -51,7 +66,8 @@ jobs:
   release:
     name: Build and publish the signed APKs
     needs: tag
-    if: always() && needs.tag.result != 'failure' && needs.tag.result != 'cancelled'
+    # A new tag from the tag job, or a tag pushed by hand.
+    if: always() && (needs.tag.outputs.tag != '' || github.event_name == 'push')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
