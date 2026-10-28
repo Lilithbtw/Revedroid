@@ -30,6 +30,8 @@ Many Cloudreve servers sit behind Cloudflare, and Cloudflare often blocks apps t
 
 Download the latest APK from the [releases tab](https://github.com/Lilithbtw/Revedroid/releases), then install it on your Android device. You may need to allow installs from your browser or file manager first.
 
+Each version is published as two releases. The `vX.Y.Z` release has `revedroid-vX.Y.Z.apk`, which updates itself from GitHub. The `vX.Y.Z-fdroid` release has `revedroid-vX.Y.Z-fdroid.apk`, the F-Droid build: it leaves out the updater and the permission to install apps, so you update it through F-Droid or by hand. Both are signed with the same key and use the same package name, so you can switch between them without losing your data.
+
 Release APKs are signed with the project's release key, so each release installs over the one before and keeps your sign-in and settings. You don't need to uninstall first.
 
 ## Updating
@@ -38,7 +40,7 @@ When you open Revedroid, it checks GitHub for a new release (at most twice a day
 
 Each release gets its version from its tag: `v0.1.3` becomes version 0.1.3 with version code 1003. Releases up to v0.1.2 all reported version 0.1.0 (code 1), so neither Android nor update tools could tell them apart. From v0.1.3 on, every release has a higher version code than the last, and v0.1.3 installs over any earlier release.
 
-Debug builds use the package name `app.revedroid.debug` and show up as "Revedroid Debug", so they install next to the release app instead of clashing with it. They don't update themselves.
+Debug builds use the package name `app.revedroid.debug` and show up as "Revedroid Debug", so they install next to the release app instead of clashing with it. They don't update themselves, and neither does the F-Droid build.
 
 ## Features
 
@@ -88,22 +90,22 @@ Requirements: JDK 17 and the Android SDK with compileSdk 37.2. The minimum suppo
 ```sh
 git clone git@github.com:Lilithbtw/Revedroid.git
 cd Revedroid
-./gradlew :app:assembleDebug
+./gradlew :app:assembleGithubDebug
 ```
 
-The APK is written to `app/build/outputs/apk/debug/app-debug.apk`. You can also open the project in Android Studio.
+The APK is written to `app/build/outputs/apk/github/debug/app-github-debug.apk`. You can also open the project in Android Studio.
 
 The version name comes from the newest `v*` tag in your checkout. Pass `-PrevedroidVersion=1.2.3` to set it yourself.
 
 To run the unit tests (URL handling, ping, Cloudflare detection, version comparison, passcode hashing, and parsing of share and trash listings):
 
 ```sh
-./gradlew :app:testDebugUnitTest
+./gradlew :app:testGithubDebugUnitTest
 ```
 
 ### Release builds
 
-`./gradlew :app:assembleRelease` signs the APK at `app/build/outputs/apk/release/app-release.apk`. Signing values come from a local `keystore.properties` file, which looks like this:
+`./gradlew :app:assembleRelease` builds and signs both flavors, at `app/build/outputs/apk/github/release/app-github-release.apk` and `app/build/outputs/apk/fdroid/release/app-fdroid-release.apk`. Signing values come from a local `keystore.properties` file, which looks like this:
 
 ```properties
 storeFile=revedroid-release.jks
@@ -115,6 +117,18 @@ keyPassword=…
 Neither the keystore nor this file is committed, and `.gitignore` excludes both. You can also set `REVEDROID_KEYSTORE_PATH`, `REVEDROID_KEYSTORE_PASSWORD`, `REVEDROID_KEY_ALIAS`, and `REVEDROID_KEY_PASSWORD` as environment variables. If neither source is set, the release APK is built unsigned.
 
 Back up the keystore. Android only installs updates signed with the same key, so losing it means existing users have to uninstall the app before they can upgrade.
+
+### F-Droid build
+
+The app has two product flavors. `github` is the default and includes the in-app updater. `fdroid` leaves it out: it doesn't request `REQUEST_INSTALL_PACKAGES`, doesn't register the install receiver, and never checks GitHub for releases. Neither flavor uses Google Play services or Firebase, and neither APK includes the dependency metadata block that Google Play encrypts and F-Droid rejects.
+
+F-Droid builds the `fdroid` flavor from a release tag:
+
+```sh
+./gradlew :app:assembleFdroidRelease -PrevedroidVersion=1.2.3
+```
+
+In F-Droid metadata, that's `gradle: [fdroid]` on each build entry. Without a keystore, the APK is written unsigned to `app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk`.
 
 ## Code style
 
@@ -129,9 +143,9 @@ Kotlin is checked with [ktlint](https://github.com/pinterest/ktlint), using the 
 
 | Workflow | Runs on | Purpose |
 |---|---|---|
-| `ci.yml` | pushes to `main`, pull requests | ktlint, Android lint (results go to code scanning), unit tests, and a debug APK artifact |
+| `ci.yml` | pushes to `main`, pull requests | ktlint, Android lint (results go to code scanning), unit tests, and a debug APK artifact. A separate job builds the unsigned F-Droid release APK, and fails if it depends on Google Play services or Firebase or can install apps |
 | `codeql.yml` | pushes to `main`, pull requests, weekly | CodeQL `security-extended` analysis of the Kotlin code |
-| `release.yml` | code pushes to `main`, tags matching `v*` | Creates the next patch tag, builds the signed release APK with that version, and attaches it to a GitHub release |
+| `release.yml` | code pushes to `main`, tags matching `v*` | Creates the next patch tag, builds the signed GitHub and F-Droid APKs with that version, and publishes them as two GitHub releases, `vX.Y.Z` and `vX.Y.Z-fdroid` |
 | `dependabot-auto-merge.yml` | Dependabot pull requests | Enables auto-merge for patch and minor updates |
 
 Dependabot checks Gradle dependencies, including `gradle/libs.versions.toml`, and GitHub Actions each week. Related libraries are grouped, so Kotlin and its compiler plugins update together.
@@ -139,7 +153,7 @@ Dependabot checks Gradle dependencies, including `gradle/libs.versions.toml`, an
 To set up a fork or a new repository:
 
 1. Add the secrets `REVEDROID_KEYSTORE_BASE64` (the output of `base64 -w0 revedroid-release.jks`), `REVEDROID_KEYSTORE_PASSWORD`, `REVEDROID_KEY_ALIAS`, and `REVEDROID_KEY_PASSWORD` under Settings, then Secrets and variables, then Actions.
-2. Turn on "Allow auto-merge" under Settings, then General. Add a branch ruleset on `main` that requires the `ktlint`, `Android lint, tests & build`, and `Security analysis (Kotlin)` checks. Dependabot pull requests then merge only after those pass. Major version bumps are never merged automatically.
+2. Turn on "Allow auto-merge" under Settings, then General. Add a branch ruleset on `main` that requires the `ktlint`, `Android lint, tests & build`, `F-Droid build`, and `Security analysis (Kotlin)` checks. Dependabot pull requests then merge only after those pass. Major version bumps are never merged automatically.
 3. Code scanning results appear under Security, then Code scanning. On private repositories, this needs GitHub Advanced Security.
 
 The ktlint engine version (`ktlintEngine` in the version catalog) is not a normal dependency, so Dependabot doesn't update it. Update it by hand when the Gradle plugin changes.

@@ -88,8 +88,11 @@ class AppUpdater(
     /** Set when the system installer reports a failure after the download finished. */
     val installError: StateFlow<String?> = _installError.asStateFlow()
 
-    /** Only release builds can update themselves: debug builds are a different app id and key. */
-    val supported: Boolean get() = !BuildConfig.DEBUG
+    /**
+     * Only GitHub release builds update themselves: debug builds are a different app id and
+     * key, and F-Droid builds get their updates from F-Droid.
+     */
+    val supported: Boolean get() = BuildConfig.SELF_UPDATE && !BuildConfig.DEBUG
 
     suspend fun check(): AppUpdate? =
         withContext(Dispatchers.IO) {
@@ -104,7 +107,8 @@ class AppUpdater(
                     if (!response.isSuccessful) throw IOException("Couldn't check for updates (HTTP ${response.code})")
                     CloudreveJson.decodeFromString<GithubRelease>(response.body.string())
                 }
-            val apk = release.assets.firstOrNull { it.name.endsWith(".apk") }
+            // F-Droid builds have their own releases and can't update themselves.
+            val apk = release.assets.firstOrNull { it.name.endsWith(".apk") && "fdroid" !in it.name }
             val version = release.tagName.removePrefix("v")
             if (release.draft || release.prerelease || apk == null || !Versions.isNewer(version, BuildConfig.VERSION_NAME)) {
                 null

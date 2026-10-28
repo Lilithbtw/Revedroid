@@ -246,6 +246,7 @@
     <string name="settings_check_now">Check for updates</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_updates_debug">Debug builds don\'t update themselves. Install a release to get updates.</string>
+    <string name="settings_updates_fdroid">This build gets its updates from F-Droid.</string>
     <string name="settings_source">Source code</string>
     <string name="settings_license">License</string>
     <string name="settings_license_body">GNU AGPL v3.0 or later, with no warranty</string>

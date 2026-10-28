@@ -31,7 +31,7 @@ jobs:
           queries: security-extended
       # CodeQL has to watch kotlinc run, so skip every cached or up-to-date output.
       - name: Build
-        run: ./gradlew :app:assembleDebug --no-build-cache --no-configuration-cache --rerun-tasks
+        run: ./gradlew :app:assembleGithubDebug --no-build-cache --no-configuration-cache --rerun-tasks
       - uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java-kotlin"

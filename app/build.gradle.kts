@@ -22,12 +22,13 @@ fun signingValue(
 ): String? = keystoreProperties.getProperty(key) ?: System.getenv(env)?.takeIf { it.isNotEmpty() }
 
 // The version comes from the release tag: CI passes -PrevedroidVersion=1.2.3 for tag
-// v1.2.3, and local builds fall back to the newest v* tag in the checkout.
+// v1.2.3, and local builds fall back to the newest v* tag in the checkout, skipping
+// the v1.2.3-fdroid tags of the F-Droid releases.
 val appVersion: String =
     providers.gradleProperty("revedroidVersion").orNull
         ?: providers
             .exec {
-                commandLine("git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*")
+                commandLine("git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*", "--exclude", "*-fdroid")
                 isIgnoreExitValue = true
             }.standardOutput.asText
             .get()
@@ -64,6 +65,28 @@ android {
         versionCode = appVersionCode
         versionName = appVersion
         buildConfigField("String", "UPDATE_FEED", "\"$updateFeed\"")
+    }
+
+    // "github" builds update themselves from GitHub releases. "fdroid" builds leave the
+    // updater out (no install permission, no release checks), as F-Droid requires.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") {
+            dimension = "distribution"
+            isDefault = true
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("fdroid") {
+            dimension = "distribution"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
+    }
+
+    // The dependency metadata block is encrypted for Google Play, which doesn't ship this
+    // app, and F-Droid rejects APKs that carry it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     signingConfigs {

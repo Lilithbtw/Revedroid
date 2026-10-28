@@ -1,13 +1,15 @@
 name: Release
 
 # Every push to main that changes something other than Markdown creates the next
-# patch tag (v0.1.0, v0.1.1, ...) and a GitHub release with a signed APK.
+# patch tag (v0.1.0, v0.1.1, ...) and a GitHub release with a signed APK. The F-Droid
+# build, which leaves out the in-app updater, gets its own release under a matching
+# -fdroid tag (v0.1.1-fdroid).
 # Pushing a tag like v0.2.0 by hand also builds and publishes that tag.
 on:
   push:
     branches: [main]
     paths-ignore: ["**/*.md"]
-    tags: ["v*"]
+    tags: ["v*", "!v*-fdroid"]
 
 permissions:
   contents: write
@@ -30,7 +32,8 @@ jobs:
       - name: Work out the next patch version
         id: next
         run: |
-          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+          # The -fdroid tags share their version with the plain tag, so skip them.
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v -- '-fdroid$' | head -n 1)
           if [ -z "$latest" ]; then
             tag=v0.1.0
           else
@@ -46,7 +49,7 @@ jobs:
           git push origin "${{ steps.next.outputs.tag }}"
 
   release:
-    name: Build and publish the signed APK
+    name: Build and publish the signed APKs
     needs: tag
     if: always() && needs.tag.result != 'failure' && needs.tag.result != 'cancelled'
     runs-on: ubuntu-latest
@@ -68,7 +71,7 @@ jobs:
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-      - name: Build signed release APK
+      - name: Build signed release APKs
         env:
           REVEDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           REVEDROID_KEYSTORE_PASSWORD: ${{ secrets.REVEDROID_KEYSTORE_PASSWORD }}
@@ -76,15 +79,41 @@ jobs:
           REVEDROID_KEY_PASSWORD: ${{ secrets.REVEDROID_KEY_PASSWORD }}
           TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
         # The tag sets versionName and versionCode, so each release upgrades the last.
-        run: ./gradlew :app:assembleRelease -PrevedroidVersion="${TAG#v}"
-      - name: Verify signature
+        run: ./gradlew :app:assembleGithubRelease :app:assembleFdroidRelease -PrevedroidVersion="${TAG#v}"
+      - name: Verify signatures
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk
-      - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "revedroid-${{ needs.tag.outputs.tag || github.ref_name }}.apk"
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/github/release/app-github-release.apk
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/fdroid/release/app-fdroid-release.apk
+      - name: Rename APKs
+        env:
+          TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
+        run: |
+          mv app/build/outputs/apk/github/release/app-github-release.apk "revedroid-$TAG.apk"
+          mv app/build/outputs/apk/fdroid/release/app-fdroid-release.apk "revedroid-$TAG-fdroid.apk"
       - uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.tag.outputs.tag || github.ref_name }}
           files: revedroid-${{ needs.tag.outputs.tag || github.ref_name }}.apk
           generate_release_notes: true
+      - name: Push the F-Droid tag
+        env:
+          TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
+        # A re-run finds the tag already pushed.
+        run: |
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG-fdroid" > /dev/null; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG-fdroid" -m "F-Droid build of $TAG"
+            git push origin "$TAG-fdroid"
+          fi
+      # Never the latest release: the in-app updater installs the latest release's APK,
+      # and the F-Droid build can't update itself.
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.tag.outputs.tag || github.ref_name }}-fdroid
+          name: ${{ needs.tag.outputs.tag || github.ref_name }} for F-Droid
+          body: |
+            The F-Droid build of [${{ needs.tag.outputs.tag || github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.tag.outputs.tag || github.ref_name }}): the same app without the in-app updater. Update it through F-Droid or by installing the next F-Droid APK.
+          files: revedroid-${{ needs.tag.outputs.tag || github.ref_name }}-fdroid.apk
+          make_latest: false

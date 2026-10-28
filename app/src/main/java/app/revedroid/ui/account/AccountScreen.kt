@@ -515,7 +515,10 @@ fun AccountScreen(
                     SettingRow(
                         icon = Icons.Rounded.Info,
                         title = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
-                        body = stringResource(R.string.settings_updates_debug),
+                        body =
+                            stringResource(
+                                if (BuildConfig.DEBUG) R.string.settings_updates_debug else R.string.settings_updates_fdroid,
+                            ),
                     )
                 }
                 SettingRow(
