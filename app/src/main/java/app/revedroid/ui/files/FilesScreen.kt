@@ -72,6 +72,7 @@ import androidx.compose.material.icons.rounded.RestoreFromTrash
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.SelectAll
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -152,7 +153,7 @@ private sealed interface FilesDialog {
     ) : FilesDialog
 
     data class Share(
-        val file: CloudFile,
+        val files: List<CloudFile>,
     ) : FilesDialog
 
     data object EmptyTrash : FilesDialog
@@ -285,6 +286,9 @@ fun FilesScreen(
                                     stringResource(R.string.files_download),
                                     enabled = picked.any { !it.isFolder },
                                 ) { viewModel.download(picked) },
+                                IslandAction(Icons.Rounded.Share, stringResource(R.string.files_share_short)) {
+                                    dialog = FilesDialog.Share(picked)
+                                },
                                 IslandAction(Icons.Rounded.DeleteOutline, stringResource(R.string.files_delete_short)) {
                                     dialog = FilesDialog.Delete(picked, forever = false)
                                 },
@@ -388,7 +392,7 @@ fun FilesScreen(
                     FileAction.Preview -> onPreview(file)
                     FileAction.OpenWith -> viewModel.openWith(file)
                     FileAction.Download -> viewModel.download(listOf(file))
-                    FileAction.Share -> dialog = FilesDialog.Share(file)
+                    FileAction.Share -> dialog = FilesDialog.Share(listOf(file))
                     FileAction.Move -> dialog = FilesDialog.Move(listOf(file))
                     FileAction.Select -> viewModel.toggleSelection(file)
                     FileAction.Rename -> dialog = FilesDialog.Rename(file)
@@ -501,11 +505,15 @@ fun FilesScreen(
         is FilesDialog.Share -> {
             val defaultExpiry by viewModel.shareExpiry.collectAsStateWithLifecycle()
             ShareLinkDialog(
-                file = d.file,
+                files = d.files,
                 initialExpiry = defaultExpiry,
-                onCreate = { expiry, protected ->
+                onCreate = { expiry, protected, folder ->
                     dialog = null
-                    viewModel.share(d.file, expiry, protected)
+                    if (folder == null) {
+                        viewModel.share(d.files.single(), expiry, protected)
+                    } else {
+                        viewModel.shareMany(d.files, folder, expiry, protected)
+                    }
                 },
                 onDismiss = { dialog = null },
             )

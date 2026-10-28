@@ -65,6 +65,7 @@
     <string name="files_preparing">Getting the file ready</string>
     <string name="files_download">Download</string>
     <string name="files_share">Create share link</string>
+    <string name="files_share_short">Share</string>
     <string name="files_rename">Rename</string>
     <string name="files_delete">Move to trash</string>
     <string name="files_delete_title">Move to trash?</string>
@@ -158,7 +159,18 @@
     <string name="share_password">Password protect</string>
     <string name="share_password_body">The password is added to the link you send</string>
     <string name="share_create">Create link</string>
-    <string name="shares_empty">No share links yet. Create one from a file\'s menu.</string>
+    <plurals name="share_dialog_title_many">
+        <item quantity="one">Share %d item</item>
+        <item quantity="other">Share %d items</item>
+    </plurals>
+    <string name="share_folder_body">A link covers one file or folder, so these items go into a new folder and the link points to it.</string>
+    <string name="share_folder_name">Folder name</string>
+    <string name="share_folder_default">Shared %1$s</string>
+    <string name="share_folder_copy">Copy</string>
+    <string name="share_folder_move">Move</string>
+    <string name="share_folder_copy_body">The originals stay where they are. The copies count toward your storage.</string>
+    <string name="share_folder_move_body">The items leave this folder for the new one, so they take up no extra storage.</string>
+    <string name="shares_empty">No share links yet. Create one from a file\'s menu, or select several files to share them with one link.</string>
     <string name="shares_expires_on">Expires %1$s</string>
     <string name="shares_expired_on">Expired %1$s</string>
     <string name="shares_expired">Expired</string>
@@ -235,6 +247,8 @@
     <string name="settings_version">Version %1$s</string>
     <string name="settings_updates_debug">Debug builds don\'t update themselves. Install a release to get updates.</string>
     <string name="settings_source">Source code</string>
+    <string name="settings_license">License</string>
+    <string name="settings_license_body">GNU AGPL v3.0 or later, with no warranty</string>
 
     <!-- App lock -->
     <string name="lock_title">Enter your passcode</string>

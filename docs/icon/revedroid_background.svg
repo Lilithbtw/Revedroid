@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <defs>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="54" cy="168" r="106"><stop offset="0" stop-color="#8FD8FF"/><stop offset="0.885" stop-color="#8FD8FF"/><stop offset="0.935" stop-color="#6E8DFF" stop-opacity="0.45"/><stop offset="1" stop-color="#4B4FCC" stop-opacity="0"/></radialGradient>
+    <linearGradient id="planet" gradientUnits="userSpaceOnUse" x1="0" y1="74" x2="0" y2="100"><stop offset="0" stop-color="#5C7DFF"/><stop offset="1" stop-color="#2B3DB2"/></linearGradient>
+    <linearGradient id="space" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="108"><stop offset="0" stop-color="#070A2B"/><stop offset="0.55" stop-color="#1A1D66"/><stop offset="1" stop-color="#2C3297"/></linearGradient>
+  </defs>
+  <path d="M0,0H108V108H0Z" fill="url(#space)"/>
+  <path d="M23.2,26A0.8,0.8 0 1,1 24.8,26A0.8,0.8 0 1,1 23.2,26Z" fill="#FFFFFF" fill-opacity="0.95"/>
+  <path d="M40.95,19.5A0.55,0.55 0 1,1 42.05,19.5A0.55,0.55 0 1,1 40.95,19.5Z" fill="#FFFFFF" fill-opacity="0.7"/>
+  <path d="M63.4,17.5A0.6,0.6 0 1,1 64.6,17.5A0.6,0.6 0 1,1 63.4,17.5Z" fill="#FFFFFF" fill-opacity="0.75"/>
+  <path d="M85.15,23.5A0.85,0.85 0 1,1 86.85,23.5A0.85,0.85 0 1,1 85.15,23.5Z" fill="#FFFFFF" fill-opacity="0.9"/>
+  <path d="M81.95,41A0.55,0.55 0 1,1 83.05,41A0.55,0.55 0 1,1 81.95,41Z" fill="#FFFFFF" fill-opacity="0.6"/>
+  <path d="M88.3,55A0.7,0.7 0 1,1 89.7,55A0.7,0.7 0 1,1 88.3,55Z" fill="#FFFFFF" fill-opacity="0.7"/>
+  <path d="M20.4,59A0.6,0.6 0 1,1 21.6,59A0.6,0.6 0 1,1 20.4,59Z" fill="#FFFFFF" fill-opacity="0.55"/>
+  <path d="M27,44A0.5,0.5 0 1,1 28,44A0.5,0.5 0 1,1 27,44Z" fill="#FFFFFF" fill-opacity="0.55"/>
+  <path d="M11.3,38A0.7,0.7 0 1,1 12.7,38A0.7,0.7 0 1,1 11.3,38Z" fill="#FFFFFF" fill-opacity="0.7"/>
+  <path d="M95.4,33A0.6,0.6 0 1,1 96.6,33A0.6,0.6 0 1,1 95.4,33Z" fill="#FFFFFF" fill-opacity="0.6"/>
+  <path d="M8.4,15A0.6,0.6 0 1,1 9.6,15A0.6,0.6 0 1,1 8.4,15Z" fill="#FFFFFF" fill-opacity="0.6"/>
+  <path d="M100.3,11A0.7,0.7 0 1,1 101.7,11A0.7,0.7 0 1,1 100.3,11Z" fill="#FFFFFF" fill-opacity="0.7"/>
+  <path d="M51.4,9A0.6,0.6 0 1,1 52.6,9A0.6,0.6 0 1,1 51.4,9Z" fill="#FFFFFF" fill-opacity="0.6"/>
+  <path d="M30.5,11A0.5,0.5 0 1,1 31.5,11A0.5,0.5 0 1,1 30.5,11Z" fill="#FFFFFF" fill-opacity="0.5"/>
+  <path d="M74.45,8A0.55,0.55 0 1,1 75.55,8A0.55,0.55 0 1,1 74.45,8Z" fill="#FFFFFF" fill-opacity="0.6"/>
+  <path d="M97.5,50A0.5,0.5 0 1,1 98.5,50A0.5,0.5 0 1,1 97.5,50Z" fill="#FFFFFF" fill-opacity="0.5"/>
+  <path d="M12.5,56A0.5,0.5 0 1,1 13.5,56A0.5,0.5 0 1,1 12.5,56Z" fill="#FFFFFF" fill-opacity="0.5"/>
+  <path d="M-52,168A106,106 0 1,1 160,168A106,106 0 1,1 -52,168Z" fill="url(#glow)"/>
+  <path d="M-40,168A94,94 0 1,1 148,168A94,94 0 1,1 -40,168Z" fill="url(#planet)"/>
+  <path d="M-40,168A94,94 0 1,1 148,168A94,94 0 1,1 -40,168Z" fill="none" stroke="#D8F2FF" stroke-width="0.7" stroke-opacity="0.85"/>
+</svg>

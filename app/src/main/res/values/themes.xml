@@ -4,8 +4,8 @@
 
     <style name="Theme.Revedroid.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="windowSplashScreenIconBackgroundColor">@color/launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_splash</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/icon_background</item>
         <item name="postSplashScreenTheme">@style/Theme.Revedroid</item>
     </style>
 </resources>

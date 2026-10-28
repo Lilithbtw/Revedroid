@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="splash_background">#FFF8F9FF</color>
-    <color name="launcher_background">#FF3F6CC4</color>
+    <!-- The Cloudreve-blue seed of the fallback color scheme, used to tint notifications. -->
+    <color name="brand">#FF3F6CC4</color>
+    <!-- The night sky from the launcher icon, behind the splash screen icon. -->
+    <color name="icon_background">#FF1A1D66</color>
 </resources>

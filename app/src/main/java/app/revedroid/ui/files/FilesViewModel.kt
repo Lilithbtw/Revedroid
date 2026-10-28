@@ -330,6 +330,19 @@ class FilesViewModel(
         _events.send(FilesEvent.ShareLink(container.shareRepository.create(file, expiry, protected), file.name))
     }
 
+    /** Shares several items with one link, through a new folder in the current one. */
+    fun shareMany(
+        files: List<CloudFile>,
+        folder: ShareFolder,
+        expiry: ShareExpiry,
+        protected: Boolean,
+    ) = act {
+        val (link, name) = container.shareRepository.createForMany(files, _state.value.uri, folder.name, folder.move, expiry, protected)
+        clearSelection()
+        load()
+        _events.send(FilesEvent.ShareLink(link, name))
+    }
+
     fun upload(sources: List<Uri>) {
         val s = _state.value
         container.uploads.enqueue(s.uri, sources, s.policy)

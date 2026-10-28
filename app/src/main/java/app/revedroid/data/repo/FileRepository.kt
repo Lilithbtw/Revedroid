@@ -68,6 +68,9 @@ object CloudUris {
         return result
     }
 
+    /** The folder holding [uri]; for an item at the top that's the root, `cloudreve://my/`. */
+    fun parent(uri: String): String = crumbs(uri).dropLast(1).last().second
+
     fun search(
         root: String,
         keyword: String,
@@ -157,7 +160,7 @@ class FileRepository(
         name: String,
     ): CloudFile =
         container.authed {
-            createFile(CreateFileRequest(uri = CloudUris.child(parent, name), type = "folder")).decode()
+            createFile(CreateFileRequest(uri = CloudUris.child(parent, name), type = "folder", errOnConflict = true)).decode()
         }
 
     suspend fun rename(
@@ -175,11 +178,13 @@ class FileRepository(
         container.authed { delete(DeleteFilesRequest(files.map { it.path }, skipSoftDelete = permanently)).ensureOk() }
     }
 
+    /** With [copy], the originals stay where they are and copies go to [destination]. */
     suspend fun move(
         files: List<CloudFile>,
         destination: String,
+        copy: Boolean = false,
     ) {
-        container.authed { move(MoveRequest(files.map { it.path }, destination)).ensureOk() }
+        container.authed { move(MoveRequest(files.map { it.path }, destination, copy)).ensureOk() }
     }
 
     suspend fun restore(files: List<CloudFile>) {

@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Balance
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Code
@@ -523,6 +524,12 @@ fun AccountScreen(
                     body = SOURCE_URL.removePrefix("https://"),
                     onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_URL.toUri())) },
                 )
+                SettingRow(
+                    icon = Icons.Rounded.Balance,
+                    title = stringResource(R.string.settings_license),
+                    body = stringResource(R.string.settings_license_body),
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, LICENSE_URL.toUri())) },
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -594,6 +601,7 @@ fun AccountScreen(
 }
 
 private const val SOURCE_URL = "https://github.com/Lilithbtw/Revedroid"
+private const val LICENSE_URL = "$SOURCE_URL/blob/main/LICENSE"
 
 private fun LockTimeout.label(): Int =
     when (this) {

@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
@@ -39,6 +41,9 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +63,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
@@ -68,6 +74,8 @@ import androidx.compose.ui.unit.dp
 import app.revedroid.R
 import app.revedroid.data.api.CloudFile
 import app.revedroid.data.repo.ShareExpiry
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 enum class FileAction { Open, Preview, OpenWith, Download, Share, Move, Select, Rename, Delete, Restore, DeleteForever }
 
@@ -227,22 +235,81 @@ fun ConfirmDialog(
     )
 }
 
-/** Options for a new share link: how long it lasts and whether it needs a password. */
+/** Where several shared items go: the new folder's name, and whether they move there or are copied. */
+data class ShareFolder(
+    val name: String,
+    val move: Boolean,
+)
+
+/**
+ * Options for a new share link: how long it lasts and whether it needs a password.
+ * A link covers one file or folder, so for several [files] it also asks for the new
+ * folder they go into and whether to copy or move them there.
+ */
 @Composable
 fun ShareLinkDialog(
-    file: CloudFile,
+    files: List<CloudFile>,
     initialExpiry: ShareExpiry,
-    onCreate: (ShareExpiry, Boolean) -> Unit,
+    onCreate: (ShareExpiry, Boolean, ShareFolder?) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val single = files.singleOrNull()
     var expiry by rememberSaveable(initialExpiry) { mutableStateOf(initialExpiry) }
     var protected by rememberSaveable { mutableStateOf(false) }
+    val defaultFolder = stringResource(R.string.share_folder_default, remember { LocalDateTime.now().format(FOLDER_STAMP) })
+    var folderName by rememberSaveable { mutableStateOf(defaultFolder) }
+    var move by rememberSaveable { mutableStateOf(false) }
+    val folderValid = folderName.isNotBlank() && folderName.none { it == '/' || it == '\\' }
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Link, contentDescription = null) },
-        title = { Text(stringResource(R.string.share_dialog_title, file.name), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        title = {
+            Text(
+                if (single != null) {
+                    stringResource(R.string.share_dialog_title, single.name)
+                } else {
+                    pluralStringResource(R.plurals.share_dialog_title_many, files.size, files.size)
+                },
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (single == null) {
+                    Text(
+                        stringResource(R.string.share_folder_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.size(12.dp))
+                    OutlinedTextField(
+                        value = folderName,
+                        onValueChange = { folderName = it },
+                        singleLine = true,
+                        isError = !folderValid,
+                        label = { Text(stringResource(R.string.share_folder_name)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.size(12.dp))
+                    val modes = listOf(false to R.string.share_folder_copy, true to R.string.share_folder_move)
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        modes.forEachIndexed { index, (moves, label) ->
+                            SegmentedButton(
+                                selected = move == moves,
+                                onClick = { move = moves },
+                                shape = SegmentedButtonDefaults.itemShape(index, modes.size),
+                            ) { Text(stringResource(label)) }
+                        }
+                    }
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        stringResource(if (move) R.string.share_folder_move_body else R.string.share_folder_copy_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.size(16.dp))
+                }
                 Text(stringResource(R.string.share_expiry), style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.size(8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -277,10 +344,18 @@ fun ShareLinkDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onCreate(expiry, protected) }) { Text(stringResource(R.string.share_create)) } },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(expiry, protected, if (single == null) ShareFolder(folderName.trim(), move) else null) },
+                enabled = single != null || folderValid,
+            ) { Text(stringResource(R.string.share_create)) }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
+
+// Sorts by date and stays clear of characters that aren't allowed in names.
+private val FOLDER_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH.mm")
 
 fun ShareExpiry.label(): Int =
     when (this) {

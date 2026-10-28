@@ -177,7 +177,8 @@ data class ThumbResponse(
 data class CreateFileRequest(
     val uri: String,
     val type: String,
-    @SerialName("err_on_conflict") val errOnConflict: Boolean = true,
+    // No default value here or below: the encoder leaves defaults out, so the server would never see them.
+    @SerialName("err_on_conflict") val errOnConflict: Boolean,
 )
 
 @Serializable
@@ -194,7 +195,7 @@ data class UrisRequest(
 @Serializable
 data class FileUrlRequest(
     val uris: List<String>,
-    val download: Boolean = true,
+    val download: Boolean,
 )
 
 @Serializable

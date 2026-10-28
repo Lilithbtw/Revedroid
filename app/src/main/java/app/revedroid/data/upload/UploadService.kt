@@ -234,7 +234,7 @@ object UploadNotifications {
         return NotificationCompat
             .Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification_upload)
-            .setColor(ContextCompat.getColor(context, R.color.launcher_background))
+            .setColor(ContextCompat.getColor(context, R.color.brand))
             .setContentIntent(open)
     }
 

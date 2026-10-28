@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <defs>
+    <linearGradient id="fin" gradientUnits="userSpaceOnUse" x1="0" y1="42" x2="0" y2="57"><stop offset="0" stop-color="#FF7D8E"/><stop offset="1" stop-color="#E8456A"/></linearGradient>
+    <linearGradient id="flame" gradientUnits="userSpaceOnUse" x1="0" y1="59" x2="0" y2="71"><stop offset="0" stop-color="#FFB547"/><stop offset="1" stop-color="#FF5E4D"/></linearGradient>
+    <radialGradient id="glass" gradientUnits="userSpaceOnUse" cx="51.6" cy="36.2" r="7.2"><stop offset="0" stop-color="#3A3EB2"/><stop offset="1" stop-color="#0F113E"/></radialGradient>
+    <linearGradient id="hull" gradientUnits="userSpaceOnUse" x1="42" y1="0" x2="66" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.5" stop-color="#F3EFFF"/><stop offset="1" stop-color="#C7B9FF"/></linearGradient>
+  </defs>
+  <path d="M43.2,41.6C38.6,43.8 35,48.4 35,54.4C35,56 36.5,56.9 37.8,56.1L44.4,52.4Z" fill="url(#fin)"/>
+  <path d="M64.8,41.6C69.4,43.8 73,48.4 73,54.4C73,56 71.5,56.9 70.2,56.1L63.6,52.4Z" fill="url(#fin)"/>
+  <path d="M54,21.4C56.6,23.1 66,28.6 66,39.6L66,48.8C66,51.1 64.2,52.9 61.9,52.9L46.1,52.9C43.8,52.9 42,51.1 42,48.8L42,39.6C42,28.6 51.4,23.1 54,21.4Z" fill="url(#hull)"/>
+  <path d="M50.3,52.4H57.7L59.5,57C59.7,57.5 59.4,57.9 58.9,57.9H49.1C48.6,57.9 48.3,57.5 48.5,57Z" fill="#8E88D8"/>
+  <path d="M46.6,38.6A7.4,7.4 0 1,1 61.4,38.6A7.4,7.4 0 1,1 46.6,38.6Z" fill="#FF6F84"/>
+  <path d="M48.05,38.6A5.95,5.95 0 1,1 59.95,38.6A5.95,5.95 0 1,1 48.05,38.6Z" fill="url(#glass)"/>
+  <path d="M51.25,36.95A1.25,1.25 0 0,1 52.5,38.2V40A1.25,1.25 0 0,1 51.25,41.25A1.25,1.25 0 0,1 50,40V38.2A1.25,1.25 0 0,1 51.25,36.95ZM56.75,36.95A1.25,1.25 0 0,1 58,38.2V40A1.25,1.25 0 0,1 56.75,41.25A1.25,1.25 0 0,1 55.5,40V38.2A1.25,1.25 0 0,1 56.75,36.95Z" fill="#8CF3FF"/>
+  <path d="M50.058,36.762A4.35,4.35 0 0,1 51.695,34.911" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.6" stroke-linecap="round"/>
+  <path d="M50.5,59.1H57.5Q58.7,59.1 58.7,60.3C58.7,63.9 56.6,67.3 54,71.6C51.4,67.3 49.3,63.9 49.3,60.3Q49.3,59.1 50.5,59.1Z" fill="url(#flame)"/>
+  <path d="M52,59.8H56Q56.8,59.8 56.8,60.6C56.8,62.8 55.6,64.8 54,67.2C52.4,64.8 51.2,62.8 51.2,60.6Q51.2,59.8 52,59.8Z" fill="#FFE680"/>
+  <path d="M35.5,80A5.4,5.4 0 1,1 36.023,69.225A7.2,7.2 0 1,1 50.271,71.158A5.8,5.8 0 0,1 56.998,70.635A8.6,8.6 0 1,1 73.957,69.655A5.2,5.2 0 0,1 73.2,80Z" fill="#D3DAFF"/>
+  <path d="M31.305,78A5.4,5.4 0 0,1 36.023,69.225A7.2,7.2 0 1,1 50.271,71.158A5.8,5.8 0 0,1 56.998,70.635A8.6,8.6 0 1,1 73.957,69.655A5.2,5.2 0 0,1 77.299,78Z" fill="#FFFFFF"/>
+  <path d="M33.2,28.8Q34.168,32.232 37.6,33.2Q34.168,34.168 33.2,37.6Q32.232,34.168 28.8,33.2Q32.232,32.232 33.2,28.8ZM74.6,28.3Q75.282,30.718 77.7,31.4Q75.282,32.082 74.6,34.5Q73.918,32.082 71.5,31.4Q73.918,30.718 74.6,28.3Z" fill="#FFE7A6"/>
+</svg>

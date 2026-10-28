@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon/revedroid_icon_rounded.svg" width="128" height="128" alt="The Revedroid icon: a rocket lifting off from a cloud above a blue planet">
+</p>
+
 # Revedroid
 
 Revedroid is an Android client for [Cloudreve](https://cloudreve.org) v4, built with Kotlin, Jetpack Compose and Material 3. It lets you sign in to your Cloudreve server from your phone and manage your files: browse folders, upload and download, share links, and empty the trash.
@@ -46,7 +50,7 @@ Debug builds use the package name `app.revedroid.debug` and show up as "Revedroi
 - Move files and folders to another folder with a folder picker.
 - Uploads run in the background with a progress notification and a Cancel button, so you can leave the app while they finish.
 - Share files from any app to Revedroid. It asks which folder to upload them to, remembers the last folder you used, and uploads in the background. Shared text becomes a `.txt` file.
-- Create share links that expire after an hour, a day, a week or a month, optionally with a password. The Shares tab lists your links with their expiry dates, view counts and remaining downloads, and lets you copy, send, open or delete each one.
+- Create share links that expire after an hour, a day, a week or a month, optionally with a password. To share several items with one link, select them and tap Share. Cloudreve links only a single file or folder, so Revedroid copies the items (or, if you choose, moves them) into a new folder and links that folder. The Shares tab lists your links with their expiry dates, view counts and remaining downloads, and lets you copy, send, open or delete each one.
 - Tap a photo, video, song, or PDF to open it in the app, with pinch-to-zoom for photos and PDFs. Other files open in another app, and every file's menu has an "Open with" entry for choosing the app yourself.
 - Restore items from the trash, delete them permanently, or empty the trash.
 - Upload in chunks to `local` and `remote` (slave node) storage policies, and to any policy running in relay mode.
@@ -158,3 +162,9 @@ ui/share     "Save to" screen for files shared from other apps
 ui/lock      Passcode screen and biometrics
 ui/account   Settings: profile, storage, accounts, security, appearance, updates
 ```
+
+The launcher icon's editable SVG sources and a 512 px PNG for app stores are in `docs/icon`.
+
+## License
+
+Revedroid is free software, licensed under the [GNU Affero General Public License v3.0](LICENSE) or, at your option, any later version. It comes with no warranty. See [LICENSE](LICENSE) for the full terms.

@@ -1,8 +1,10 @@
 package app.revedroid.data
 
+import app.revedroid.data.api.CloudFile
 import app.revedroid.data.api.CloudreveJson
 import app.revedroid.data.api.FileType
 import app.revedroid.data.api.ShareListResponse
+import app.revedroid.data.repo.outermostItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -55,5 +57,22 @@ class ShareTest {
         assertTrue(file.copy(expired = true).isExpired(Instant.parse("2026-10-27T12:00:00Z")))
         assertTrue(file.copy(remainingDownloads = 0).isExpired(Instant.parse("2026-10-27T12:00:00Z")))
         assertFalse(shares[1].isExpired())
+    }
+
+    @Test
+    fun sharingSeveralItemsSkipsThoseInsideAPickedFolder() {
+        // Search results can hold a folder next to files from inside it.
+        fun item(
+            path: String,
+            type: Int = FileType.FILE,
+        ) = CloudFile(type = type, id = path, name = path.substringAfterLast('/'), path = "cloudreve://my/$path")
+        val photos = item("Photos", FileType.FOLDER)
+        val inside = item("Photos/beach.jpg")
+        val deeper = item("Photos/2026/sunset.jpg")
+        val lookalike = item("Photos old/beach.jpg")
+        val notes = item("notes.txt")
+
+        assertEquals(listOf(photos, lookalike, notes), outermostItems(listOf(photos, inside, deeper, lookalike, notes)))
+        assertEquals(listOf(inside, notes), outermostItems(listOf(inside, notes)))
     }
 }
